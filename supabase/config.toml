@@ -1,4 +1,0 @@
-project_id = "midi-mapa-creativo-v2"
-
-[functions.subir-foto]
-verify_jwt = true

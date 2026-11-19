@@ -377,7 +377,7 @@ function viewProfileOnMap(profile) {
   }
   profileDialog.close();
   setView("map");
-  map.stop().setView(pointOf(profile), Math.max(10.5, map.getZoom()), { animate: false });
+  map.stop().setView(pointOf(profile), Math.max(14, map.getZoom()), { animate: false });
   const marker = pins.find((entry) => entry.profiles.includes(profile))?.marker;
   if (marker) {
     marker.getElement()?.focus({ preventScroll: true });
@@ -540,8 +540,9 @@ const map = window.L && typeof mapData !== "undefined" ? L.map("map", {
   zoomSnap: .25,
   zoomDelta: .75,
   minZoom: 6,
-  maxZoom: 12,
-  scrollWheelZoom: false,
+  maxZoom: 19,
+  scrollWheelZoom: true,
+  wheelPxPerZoomLevel: 90,
   maxBounds: [[-31.5, -60.5], [-22.5, -49.5]],
   maxBoundsViscosity: .85,
   zoomAnimation: animate(),
@@ -589,14 +590,19 @@ function drawPlaceNames() {
 }
 
 function drawBaseMap() {
+  // Keep the bundled overview below the street tiles as a fallback.
+  const fallbackPane = map.createPane("fallbackBase");
+  fallbackPane.style.zIndex = 150;
+  fallbackPane.style.pointerEvents = "none";
+  fallbackPane.setAttribute("aria-hidden", "true");
   const placePane = map.createPane("placeNames");
-  placePane.style.zIndex = 450;
+  placePane.style.zIndex = 180;
   placePane.style.pointerEvents = "none";
   placePane.setAttribute("aria-hidden", "true");
   map.getPane("overlayPane").setAttribute("aria-hidden", "true");
   const fills = { Argentina: "#f1ede2", Paraguay: "#f0efe4", Brazil: "#eeede3", Uruguay: "#f0efe5" };
   L.geoJSON(mapData.provinces, {
-    interactive: false,
+    pane: "fallbackBase", interactive: false,
     style: ({ properties }) => {
       const local = properties.iso_3166_2 === "AR-N";
       return {
@@ -606,33 +612,59 @@ function drawBaseMap() {
     },
   }).addTo(map);
   L.geoJSON(mapData.urban, {
-    interactive: false,
+    pane: "fallbackBase", interactive: false,
     style: { stroke: false, fillColor: "#d6cbbd", fillOpacity: .56 },
   }).addTo(map);
   L.geoJSON(mapData.roads, {
-    interactive: false,
+    pane: "fallbackBase", interactive: false,
     style: ({ properties }) => ({
       color: "#d0c5a7", weight: properties.type === "Major Highway" ? 2.2 : 1.7, opacity: .78,
     }),
   }).addTo(map);
   L.geoJSON(mapData.roads, {
-    interactive: false,
+    pane: "fallbackBase", interactive: false,
     style: ({ properties }) => ({
       color: properties.type === "Major Highway" ? "#fff8df" : "#fffdf2",
       weight: properties.type === "Major Highway" ? 1.4 : .95, opacity: .96,
     }),
   }).addTo(map);
   L.geoJSON(mapData.lakes, {
-    interactive: false,
+    pane: "fallbackBase", interactive: false,
     style: { color: "#a8c8d3", weight: .7, fillColor: "#b9d6e0", fillOpacity: 1 },
   }).addTo(map);
   L.geoJSON(mapData.rivers, {
-    interactive: false,
+    pane: "fallbackBase", interactive: false,
     style: ({ properties }) => ({
       color: "#94b8c7",
       weight: properties.name === "Paraná" ? 2.9 : properties.name === "Uruguay" ? 2.3 : 1.1,
       opacity: .86,
     }),
+  }).addTo(map);
+}
+
+function drawStreetMap() {
+  const failedTiles = new Set();
+  const message = byId("map-message");
+  const updateMessage = () => {
+    message.hidden = failedTiles.size === 0;
+    message.textContent = failedTiles.size
+      ? "No se pudieron cargar algunas calles. Podés seguir usando el mapa general y las fichas de la lista."
+      : "";
+  };
+  L.tileLayer("https://tile.openstreetmap.org/{z}/{x}/{y}.png", {
+    minZoom: 6,
+    maxZoom: 19,
+    maxNativeZoom: 19,
+    updateWhenIdle: true,
+    keepBuffer: 1,
+    referrerPolicy: "strict-origin-when-cross-origin",
+    attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap contributors</a>',
+  }).on("tileerror", ({ tile }) => {
+    failedTiles.add(tile);
+    updateMessage();
+  }).on("tileload tileunload", ({ tile }) => {
+    failedTiles.delete(tile);
+    updateMessage();
   }).addTo(map);
 }
 
@@ -742,7 +774,7 @@ function positionPinLabels() {
 function fitMap() {
   if (!map || state.view !== "map") return;
   map.closePopup();
-  const options = { animate: false, paddingTopLeft: [37, 33], paddingBottomRight: [44, 37], maxZoom: 9.5 };
+  const options = { animate: false, paddingTopLeft: [37, 33], paddingBottomRight: [44, 37], maxZoom: state.town ? 14 : 9.5 };
   if (displayed.length && (hasFilters() || state.section === "saved")) {
     map.fitBounds(L.latLngBounds(displayed.map(pointOf)), options);
   } else if (state.town) {
@@ -760,7 +792,8 @@ function syncMapControls() {
 
 if (map) {
   drawBaseMap();
-  map.getContainer().setAttribute("aria-label", "Mapa de Misiones. Usá las flechas para moverlo y los botones para acercar o alejar.");
+  drawStreetMap();
+  map.getContainer().setAttribute("aria-label", "Mapa de Misiones con calles. Usá las flechas para moverlo, la rueda del mouse o los botones para acercar y alejar. En una pantalla táctil, usá dos dedos para cambiar el zoom.");
   map.on("zoomend", () => { renderPins(); syncMapControls(); });
   map.on("moveend", () => { drawPlaceNames(); positionPinLabels(); });
   fitMap();

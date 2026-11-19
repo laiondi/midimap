@@ -10,14 +10,14 @@
   <link rel="icon" href="assets/midi-simbolo.webp" type="image/webp">
   <link rel="preload" href="assets/fonts/bricolage.woff2" as="font" type="font/woff2" crossorigin>
   <link rel="stylesheet" href="assets/vendor/leaflet/leaflet.css">
-  <link rel="stylesheet" href="styles.css?v=2.3">
+  <link rel="stylesheet" href="styles.css?v=2.3-mapa-1">
   <script defer src="assets/vendor/leaflet/leaflet.js"></script>
   <script defer src="data.js"></script>
   <script defer src="assets/map-data.js"></script>
   <script defer src="assets/vendor/supabase/supabase.js"></script>
   <script defer src="config.js"></script>
   <script defer src="backend.js?v=2.2"></script>
-  <script defer src="app.js?v=2.3"></script>
+  <script defer src="app.js?v=2.3-mapa-1"></script>
   <script defer src="ratings.js?v=2.2"></script>
   <script defer src="sponsors.js?v=2.3"></script>
   <script defer src="account.js?v=2.3"></script>
@@ -158,9 +158,12 @@
         </div>
         <div class="map-foot">
           <span class="map-hint">Ubicaciones aproximadas</span>
-          <a href="https://www.naturalearthdata.com/" target="_blank" rel="noopener noreferrer">Natural Earth</a>
+          <div class="map-attribution">
+            <a href="https://www.openstreetmap.org/copyright" target="_blank" rel="noopener noreferrer">© OpenStreetMap contributors</a>
+            <a href="https://www.naturalearthdata.com/" target="_blank" rel="noopener noreferrer" title="Cartografía general de respaldo">Natural Earth</a>
+          </div>
         </div>
-        <p id="map-message" class="map-message" hidden></p>
+        <p id="map-message" class="map-message" role="status" hidden></p>
       </section>
     </div>
 
@@ -298,9 +301,8 @@
       </form>
       <form id="verify-code-form" class="account-form" hidden>
         <label for="login-code">Código del correo</label>
-<input id="login-code" name="code" type="text"
-  inputmode="numeric" autocomplete="one-time-code"
-  pattern="[0-9]{6,10}" minlength="6" maxlength="10" required>
+        <input id="login-code" name="code" type="text" inputmode="numeric" autocomplete="one-time-code"
+          pattern="[0-9]{6,10}" minlength="6" maxlength="10" required>
         <div class="dialog-actions">
           <button class="button primary" type="submit">Ingresar</button>
           <button class="button secondary" type="button" data-account="change-email">Cambiar correo</button>

@@ -297,9 +297,10 @@
         <button class="button primary" type="submit">Enviar código <svg class="icon"><use href="#i-right"></use></svg></button>
       </form>
       <form id="verify-code-form" class="account-form" hidden>
-        <label for="login-code">Código de 6 dígitos</label>
-        <input id="login-code" name="code" type="text" inputmode="numeric" autocomplete="one-time-code"
-          pattern="[0-9]{6}" maxlength="6" required>
+        <label for="login-code">Código del correo</label>
+<input id="login-code" name="code" type="text"
+  inputmode="numeric" autocomplete="one-time-code"
+  pattern="[0-9]{6,10}" minlength="6" maxlength="10" required>
         <div class="dialog-actions">
           <button class="button primary" type="submit">Ingresar</button>
           <button class="button secondary" type="button" data-account="change-email">Cambiar correo</button>

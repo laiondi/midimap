@@ -1,0 +1,422 @@
+<!doctype html>
+<html lang="es-AR">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="description" content="Encontrá profesionales del diseño, talleres de producción, equipos en alquiler y espacios de trabajo en Misiones.">
+  <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob: https:; connect-src 'self' https:; object-src 'none'; base-uri 'none'; form-action 'self'">
+  <meta name="theme-color" content="#181146">
+  <title>Mapa creativo de Misiones · MiDi</title>
+  <link rel="icon" href="assets/midi-simbolo.webp" type="image/webp">
+  <link rel="preload" href="assets/fonts/bricolage.woff2" as="font" type="font/woff2" crossorigin>
+  <link rel="stylesheet" href="assets/vendor/leaflet/leaflet.css">
+  <link rel="stylesheet" href="styles.css?v=2.3">
+  <script defer src="assets/vendor/leaflet/leaflet.js"></script>
+  <script defer src="data.js"></script>
+  <script defer src="assets/map-data.js"></script>
+  <script defer src="assets/vendor/supabase/supabase.js"></script>
+  <script defer src="config.js"></script>
+  <script defer src="backend.js?v=2.2"></script>
+  <script defer src="app.js?v=2.3"></script>
+  <script defer src="ratings.js?v=2.2"></script>
+  <script defer src="sponsors.js?v=2.3"></script>
+  <script defer src="account.js?v=2.3"></script>
+</head>
+<body>
+  <svg class="icon-sprite" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+    <symbol id="i-search" viewBox="0 0 24 24"><circle cx="11" cy="11" r="6.5"/><path d="m16 16 4 4"/></symbol>
+    <symbol id="i-pin" viewBox="0 0 24 24"><path d="M20 10c0 5-8 10-8 10s-8-5-8-10a8 8 0 1 1 16 0Z"/><circle cx="12" cy="10" r="2.4"/></symbol>
+    <symbol id="i-map" viewBox="0 0 24 24"><path d="m3 6 6-3 6 3 6-3v15l-6 3-6-3-6 3ZM9 3v15m6-12v15"/></symbol>
+    <symbol id="i-list" viewBox="0 0 24 24"><path d="M8 6h13M8 12h13M8 18h13M3 6h.01M3 12h.01M3 18h.01"/></symbol>
+    <symbol id="i-bookmark" viewBox="0 0 24 24"><path d="M6 5a2 2 0 0 1 2-2h8a2 2 0 0 1 2 2v16l-6-4-6 4Z"/></symbol>
+    <symbol id="i-plus" viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"/></symbol>
+    <symbol id="i-minus" viewBox="0 0 24 24"><path d="M5 12h14"/></symbol>
+    <symbol id="i-close" viewBox="0 0 24 24"><path d="m6 6 12 12M18 6 6 18"/></symbol>
+    <symbol id="i-down" viewBox="0 0 24 24"><path d="m6 9 6 6 6-6"/></symbol>
+    <symbol id="i-right" viewBox="0 0 24 24"><path d="M4 12h15m-6-6 6 6-6 6"/></symbol>
+    <symbol id="i-external" viewBox="0 0 24 24"><path d="M13 5h6v6m0-6-9 9m8 0v4a1 1 0 0 1-1 1H6a1 1 0 0 1-1-1V7a1 1 0 0 1 1-1h4"/></symbol>
+    <symbol id="i-locate" viewBox="0 0 24 24"><circle cx="12" cy="12" r="6.5"/><circle cx="12" cy="12" r="1.4"/><path d="M12 2v3.5m0 13V22M2 12h3.5m13 0H22"/></symbol>
+    <symbol id="i-grid" viewBox="0 0 24 24"><rect x="4" y="4" width="6" height="6" rx="1.2"/><rect x="14" y="4" width="6" height="6" rx="1.2"/><rect x="4" y="14" width="6" height="6" rx="1.2"/><rect x="14" y="14" width="6" height="6" rx="1.2"/></symbol>
+    <symbol id="i-industrial" viewBox="0 0 24 24"><path d="m12 3 8 4.5v9L12 21l-8-4.5v-9L12 3Zm0 9 8-4.5M12 12 4 7.5m8 4.5v9M8 5.2l8 4.6"/></symbol>
+    <symbol id="i-graphic" viewBox="0 0 24 24"><path d="m12 3 8 8-4 6-5 1-4 3-4-4 3-4 1-5 5-5Zm-5 13 3.2-3.2"/><circle cx="11.6" cy="11.4" r="1.8"/></symbol>
+    <symbol id="i-architecture" viewBox="0 0 24 24"><path d="M3 21h18M5 21V8l7-5v18m0-12 7 3v9M8.5 10v1m0 3v1m7.5 0v1"/></symbol>
+    <symbol id="i-textile" viewBox="0 0 24 24"><path d="M5.5 19 19 5.5M7 9l8 8M9 7l8 8M4.5 14.5l5 5m5-15 5 5M11 5.5l7.5 7.5M5.5 11l7.5 7.5"/></symbol>
+    <symbol id="i-video" viewBox="0 0 24 24"><rect x="3" y="6" width="12" height="12" rx="2"/><path d="m15 10 6-3v10l-6-3"/></symbol>
+    <symbol id="i-camera" viewBox="0 0 24 24"><path d="M4 7h3l2-3h6l2 3h3a1 1 0 0 1 1 1v11a1 1 0 0 1-1 1H4a1 1 0 0 1-1-1V8a1 1 0 0 1 1-1Z"/><circle cx="12" cy="13" r="3.4"/></symbol>
+    <symbol id="i-space" viewBox="0 0 24 24"><path d="M4 20V8l8-5 8 5v12ZM8 20v-7h8v7m-8-3h8"/></symbol>
+    <symbol id="i-user" viewBox="0 0 24 24"><circle cx="12" cy="7.5" r="3.5"/><path d="M5 21v-2a5 5 0 0 1 5-5h4a5 5 0 0 1 5 5v2"/></symbol>
+    <symbol id="i-message" viewBox="0 0 24 24"><path d="M20 11.5a8 8 0 0 1-11.9 7L4 20l1.5-4.1A8 8 0 1 1 20 11.5Z"/><path d="M9 12h6"/></symbol>
+    <symbol id="i-mail" viewBox="0 0 24 24"><rect x="3" y="5" width="18" height="14" rx="2"/><path d="m4 7 8 6 8-6"/></symbol>
+    <symbol id="i-check" viewBox="0 0 24 24"><path d="m5 12 4 4L19 6"/></symbol>
+    <symbol id="i-info" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M12 11.5v5m0-9h.01"/></symbol>
+    <symbol id="i-compass" viewBox="0 0 24 24"><path d="m12 3 6 17-6-4-6 4Z"/></symbol>
+    <symbol id="i-manage" viewBox="0 0 24 24"><rect x="3" y="5" width="18" height="16" rx="2"/><path d="M8 3v4m8-4v4M7 12h3m4 0h3M7 16h3m4 0h3"/></symbol>
+    <symbol id="i-trash" viewBox="0 0 24 24"><path d="M3 6h18M9 6V3h6v3M6 6l1 15h10l1-15M10 10v7m4-7v7"/></symbol>
+    <symbol id="i-phone" viewBox="0 0 24 24"><path d="M6 3h3l1.5 4.5-2.1 2.1a14 14 0 0 0 6 6l2.1-2.1L21 15v3a3 3 0 0 1-3 3C10 21 3 14 3 6a3 3 0 0 1 3-3Z"/></symbol>
+    <symbol id="i-left" viewBox="0 0 24 24"><path d="M20 12H5m6-6-6 6 6 6"/></symbol>
+    <symbol id="i-pause" viewBox="0 0 24 24"><path d="M9 5v14M15 5v14"/></symbol>
+    <symbol id="i-play" viewBox="0 0 24 24"><path d="m8 5 12 7-12 7Z"/></symbol>
+  </svg>
+
+  <a class="skip-link" href="#explorar">Ir al explorador</a>
+  <header class="site-header">
+    <div class="shell header-inner">
+      <a class="brand" href="#" aria-label="Misiones Diseña, inicio">
+        <img src="assets/midi-marca.webp" width="142" height="63" alt="Misiones Diseña · Parque de Industrias Creativas">
+      </a>
+      <nav class="header-nav" aria-label="Secciones">
+        <button class="nav-button is-active" type="button" data-section="explore" aria-label="Explorar" aria-current="page">
+          <svg class="icon"><use href="#i-compass"></use></svg><span>Explorar</span>
+        </button>
+        <button class="nav-button" type="button" data-section="saved" aria-label="Guardados">
+          <svg class="icon"><use href="#i-bookmark"></use></svg><span>Guardados</span><span id="saved-count" class="saved-count" hidden></span>
+        </button>
+        <button class="nav-button" type="button" data-section="management" id="management-nav" aria-label="Gestión" hidden>
+          <svg class="icon"><use href="#i-manage"></use></svg><span>Gestión</span>
+        </button>
+      </nav>
+      <div class="account-actions">
+        <button type="button" class="button secondary account-button" data-account="account" id="account-button" aria-label="Ingresar">
+          <svg class="icon"><use href="#i-user"></use></svg><span>Ingresar</span>
+        </button>
+        <button type="button" class="button primary add-profile" data-account="profile" id="join-button">
+          <svg class="icon"><use href="#i-plus"></use></svg><span>Sumá tu perfil</span>
+        </button>
+      </div>
+    </div>
+  </header>
+
+  <section class="hero" aria-labelledby="main-title">
+    <div class="shell hero-inner">
+      <div class="hero-copy">
+        <h1 id="main-title">Mapa creativo <span>de Misiones</span></h1>
+        <p>Encontrá profesionales del diseño, talleres de producción, equipos y espacios de trabajo cerca de vos.</p>
+      </div>
+      <div class="hero-art" aria-hidden="true">
+        <div class="contours"></div>
+        <div class="brand-sticker"><img src="assets/midi-simbolo.webp" width="105" height="105" alt=""></div>
+        <i class="art-dot art-dot--pink"></i>
+        <i class="art-dot art-dot--green"></i>
+        <i class="art-dot art-dot--yellow"></i>
+      </div>
+    </div>
+  </section>
+
+  <main class="shell explorer" id="explorar" tabindex="-1">
+    <div class="toolbar">
+      <div class="search-control">
+        <svg class="icon" aria-hidden="true"><use href="#i-search"></use></svg>
+        <label for="search" class="sr-only">Buscar profesionales, servicios o espacios</label>
+        <input type="search" id="search" placeholder="Buscá un servicio, equipo o profesional…" autocomplete="off">
+        <button class="icon-button search-clear" type="button" id="search-clear" aria-label="Borrar búsqueda" hidden>
+          <svg class="icon"><use href="#i-close"></use></svg>
+        </button>
+      </div>
+      <div class="town-control">
+        <svg class="icon" aria-hidden="true"><use href="#i-pin"></use></svg>
+        <label for="town" class="sr-only">Localidad</label>
+        <select id="town"><option value="">Toda Misiones</option></select>
+        <svg class="icon chevron" aria-hidden="true"><use href="#i-down"></use></svg>
+      </div>
+      <div class="view-switch" role="group" aria-label="Vista del directorio">
+        <button type="button" data-view="map" aria-pressed="true"><svg class="icon"><use href="#i-map"></use></svg>Mapa</button>
+        <button type="button" data-view="list" aria-pressed="false"><svg class="icon"><use href="#i-list"></use></svg>Lista</button>
+      </div>
+    </div>
+    <div class="category-filters">
+      <div class="category-bar" role="group" aria-label="Filtrar por tipo de servicio" id="categories"></div>
+      <div class="category-select" id="category-select">
+        <label class="sr-only" for="category-detail">Rama o rubro específico</label>
+        <select id="category-detail"></select>
+        <svg class="icon chevron" aria-hidden="true"><use href="#i-down"></use></svg>
+      </div>
+    </div>
+
+    <div class="workspace" id="workspace" data-mode="map">
+      <section class="results" aria-labelledby="result-title">
+        <div class="results-header">
+          <div>
+            <h2 id="result-title">Directorio creativo</h2>
+            <p id="result-count" class="result-count" aria-live="polite"></p>
+          </div>
+          <button type="button" class="text-button" id="clear-filters" hidden>Limpiar filtros</button>
+        </div>
+        <div class="result-list" id="result-list"></div>
+      </section>
+
+      <section class="map-panel" id="map-panel" aria-label="Mapa interactivo de Misiones">
+        <div class="map-canvas" id="map"></div>
+        <div class="map-scope" aria-hidden="true">
+          <svg class="icon"><use href="#i-map"></use></svg><span id="map-scope">Toda Misiones</span>
+        </div>
+        <div class="map-controls" aria-label="Controles del mapa" role="group">
+          <div class="zoom-buttons">
+            <button class="map-button" type="button" data-map="in" aria-label="Acercar mapa" title="Acercar"><svg class="icon"><use href="#i-plus"></use></svg></button>
+            <button class="map-button" type="button" data-map="out" aria-label="Alejar mapa" title="Alejar"><svg class="icon"><use href="#i-minus"></use></svg></button>
+          </div>
+          <button class="map-button recenter" type="button" data-map="fit" aria-label="Ajustar mapa a los resultados" title="Ajustar vista"><svg class="icon"><use href="#i-locate"></use></svg></button>
+        </div>
+        <div class="map-foot">
+          <span class="map-hint">Ubicaciones aproximadas</span>
+          <a href="https://www.naturalearthdata.com/" target="_blank" rel="noopener noreferrer">Natural Earth</a>
+        </div>
+        <p id="map-message" class="map-message" hidden></p>
+      </section>
+    </div>
+
+    <footer class="app-footer">
+      <section id="sponsors" class="sponsors" aria-label="Publicidad de patrocinadores" hidden>
+        <div class="sponsor-heading">
+          <h2>Publicidad <small id="sponsor-demo" hidden>Ejemplos</small></h2>
+          <div id="sponsor-controls" class="sponsor-controls" role="group" aria-label="Controles de anuncios" hidden>
+            <span id="sponsor-position" aria-live="off"></span>
+            <button class="icon-button" type="button" id="sponsor-toggle" aria-label="Pausar anuncios"><svg class="icon"><use href="#i-pause"></use></svg></button>
+            <button class="icon-button" type="button" data-ad-step="-1" aria-label="Anuncio anterior"><svg class="icon"><use href="#i-left"></use></svg></button>
+            <button class="icon-button" type="button" data-ad-step="1" aria-label="Anuncio siguiente"><svg class="icon"><use href="#i-right"></use></svg></button>
+          </div>
+        </div>
+        <div id="sponsor-slide" aria-live="off"></div>
+      </section>
+      <div class="footer-meta">
+        <button type="button" class="text-button about-link" data-open="about">
+          <svg class="icon"><use href="#i-info"></use></svg> Sobre el mapa y MiDi
+        </button>
+        <p id="connection-note" aria-live="polite"></p>
+      </div>
+    </footer>
+  </main>
+
+  <main id="management-panel" class="shell management-panel" aria-labelledby="review-title" tabindex="-1" hidden>
+    <div class="management-heading">
+      <h1 id="review-title">Gestión</h1>
+      <button class="button secondary" type="button" data-section="explore">Volver al mapa</button>
+    </div>
+    <div class="management-card">
+      <section id="review-verification" hidden>
+        <p id="mfa-help"></p>
+        <img id="mfa-qr" class="mfa-qr" alt="Código QR para configurar el autenticador" hidden>
+        <p id="mfa-manual" hidden><span>Clave de configuración</span> <code id="mfa-secret"></code></p>
+        <button type="button" class="button primary" id="mfa-start" data-account="mfa-start" hidden>Configurar autenticador</button>
+        <form id="mfa-form" class="account-form" hidden>
+          <label for="mfa-code">Código del autenticador</label>
+          <input id="mfa-code" name="code" type="text" inputmode="numeric" autocomplete="one-time-code"
+            pattern="[0-9]{6}" maxlength="6" required>
+          <button type="submit" class="button primary">Verificar</button>
+        </form>
+      </section>
+      <div id="admin-content" hidden>
+        <div class="view-switch admin-switch" role="group" aria-label="Secciones de gestión">
+          <button type="button" data-admin-view="fichas" aria-pressed="true">Fichas</button>
+          <button type="button" data-admin-view="solicitudes" aria-pressed="false">Solicitudes</button>
+          <button type="button" data-admin-view="publicidad" aria-pressed="false">Publicidad</button>
+        </div>
+        <section id="admin-fichas" aria-label="Gestión de fichas">
+          <div class="account-form admin-filter" id="review-filter-control">
+            <label for="review-filter">Estado de la ficha</label>
+            <select id="review-filter">
+              <option value="">Todas</option>
+              <option value="en_revision">En revisión</option>
+              <option value="publicada">Publicadas</option>
+              <option value="pausada">Pausadas</option>
+              <option value="correcciones">Con correcciones</option>
+              <option value="borrador">Borradores</option>
+            </select>
+          </div>
+          <p id="admin-demo-note" class="field-help" hidden>En esta demo también podés pausar y eliminar las fichas de ejemplo.</p>
+          <div class="management-grid">
+            <div id="review-list" class="admin-list"></div>
+            <div class="management-detail">
+              <p id="review-prompt" class="field-help">Elegí una ficha para revisar sus datos.</p>
+              <section id="review-contents" hidden></section>
+            </div>
+          </div>
+        </section>
+        <section id="admin-publicidad" aria-label="Gestión de publicidad" hidden>
+          <div class="dialog-actions">
+            <button type="button" class="button secondary" id="sponsor-new"><svg class="icon"><use href="#i-plus"></use></svg> Nuevo anuncio</button>
+          </div>
+          <div id="sponsor-list" class="admin-list"></div>
+          <form id="sponsor-form" class="account-form sponsor-form" hidden>
+            <h3 id="sponsor-form-title">Nuevo anuncio</h3>
+            <label for="ad-title">Patrocinador</label>
+            <input id="ad-title" name="titulo" maxlength="80" minlength="2" required>
+            <label for="ad-text">Texto del anuncio</label>
+            <input id="ad-text" name="texto" maxlength="140">
+            <div class="form-row">
+              <div><label for="ad-url">Enlace</label><input id="ad-url" name="enlace" type="url" maxlength="300" placeholder="https://"></div>
+              <div><label for="ad-order">Orden en el carrusel</label><input id="ad-order" name="orden" type="number" min="0" max="999" value="0" required></div>
+            </div>
+            <label for="ad-image">Imagen del anuncio</label>
+            <div id="ad-preview"></div>
+            <input id="ad-image" type="file" accept="image/jpeg,image/png,image/webp">
+            <button id="ad-remove-image" class="text-button" type="button" hidden>Quitar imagen</button>
+            <label class="consent-check"><input name="activo" type="checkbox"> Mostrar en el carrusel</label>
+            <div class="dialog-actions">
+              <button type="submit" class="button primary">Guardar anuncio</button>
+              <button type="button" class="text-button danger-link" id="ad-remove" hidden>Eliminar anuncio</button>
+            </div>
+          </form>
+        </section>
+      </div>
+      <p id="review-message" class="inline-feedback" role="status" hidden></p>
+    </div>
+  </main>
+
+  <dialog id="profile-dialog" class="profile-dialog" aria-labelledby="profile-title">
+    <article id="profile-body"></article>
+  </dialog>
+
+  <dialog id="about-dialog" class="modal" aria-labelledby="about-title">
+    <div class="modal-inner">
+      <form method="dialog" class="modal-close">
+        <button class="icon-button" type="submit" aria-label="Cerrar"><svg class="icon"><use href="#i-close"></use></svg></button>
+      </form>
+      <img class="about-logo" src="assets/midi-marca.webp" width="172" height="76" alt="Misiones Diseña">
+      <h2 id="about-title">Sobre el mapa</h2>
+      <p>El mapa reúne a profesionales, estudios, talleres de producción, proveedores de equipos y espacios de trabajo vinculados al diseño en Misiones. La propuesta contempla a Misiones Diseña como gestor del directorio.</p>
+      <p>MiDi es el Parque de Industrias Creativas de Misiones. Ofrece formación, coworking y laboratorios para producción creativa.</p>
+      <a class="button primary" href="https://midi.ar/" target="_blank" rel="noopener noreferrer">Conocé MiDi <svg class="icon"><use href="#i-external"></use></svg></a>
+    </div>
+  </dialog>
+
+  <dialog id="account-dialog" class="modal" aria-labelledby="account-title">
+    <div class="modal-inner">
+      <form method="dialog" class="modal-close">
+        <button class="icon-button" type="submit" aria-label="Cerrar acceso"><svg class="icon"><use href="#i-close"></use></svg></button>
+      </form>
+      <h2 id="account-title">Ingresá</h2>
+      <p id="account-help"></p>
+      <div id="demo-access" class="dialog-actions" hidden>
+        <button type="button" class="button primary" data-demo-login="titular">Probar como titular</button>
+        <button type="button" class="button secondary" data-demo-login="admin">Probar como administrador</button>
+        <button type="button" class="button secondary" data-demo-login="cliente">Probar como cliente</button>
+      </div>
+      <form id="send-code-form" class="account-form" hidden>
+        <label for="login-email">Tu correo de ingreso</label>
+        <input id="login-email" name="email" type="email" autocomplete="email" maxlength="254" required>
+        <button class="button primary" type="submit">Enviar código <svg class="icon"><use href="#i-right"></use></svg></button>
+      </form>
+      <form id="verify-code-form" class="account-form" hidden>
+        <label for="login-code">Código de 6 dígitos</label>
+        <input id="login-code" name="code" type="text" inputmode="numeric" autocomplete="one-time-code"
+          pattern="[0-9]{6}" maxlength="6" required>
+        <div class="dialog-actions">
+          <button class="button primary" type="submit">Ingresar</button>
+          <button class="button secondary" type="button" data-account="change-email">Cambiar correo</button>
+        </div>
+      </form>
+      <div id="signed-in-access" class="dialog-actions" hidden>
+        <button type="button" class="button primary" data-account="profile">Mi ficha</button>
+        <button type="button" class="button secondary" id="review-button" data-account="review" hidden>Gestión</button>
+        <button type="button" class="button secondary" data-account="logout">Cerrar sesión</button>
+      </div>
+      <p id="account-message" class="inline-feedback" role="status" hidden></p>
+    </div>
+  </dialog>
+
+  <dialog id="editor-dialog" class="modal workspace-dialog" aria-labelledby="editor-title">
+    <div class="modal-inner">
+      <form method="dialog" class="modal-close">
+        <button class="icon-button" type="submit" aria-label="Cerrar Mi ficha"><svg class="icon"><use href="#i-close"></use></svg></button>
+      </form>
+      <h2 id="editor-title">Mi ficha</h2>
+      <div class="editor-status" id="editor-status"></div>
+      <p id="review-note" class="revision-note" hidden></p>
+      <form id="draft-form" class="account-form" novalidate>
+        <fieldset id="draft-fields">
+          <label for="draft-name">Nombre del emprendimiento</label>
+          <input id="draft-name" name="nombre" maxlength="70" autocomplete="organization" placeholder="Ej. Estudio del río">
+          <div class="form-row">
+            <div><label for="draft-category">Rama o rubro</label><select id="draft-category" name="categoria"></select></div>
+            <div><label for="draft-town">Localidad</label><select id="draft-town" name="localidad"></select></div>
+          </div>
+          <label for="draft-services">Servicios que ofrecés</label>
+          <input id="draft-services" name="servicios" maxlength="160" placeholder="Ej. Diseño de mobiliario a medida">
+          <div id="production-fields" class="production-fields" hidden>
+            <label for="draft-processes">Procesos</label>
+            <input id="draft-processes" name="procesos" maxlength="160" placeholder="Ej. Corte CNC y ensamblado">
+            <div class="form-row">
+              <div><label for="draft-materials">Materiales</label><input id="draft-materials" name="materiales" maxlength="160" placeholder="Ej. Madera y MDF"></div>
+              <div><label for="draft-scale">Escala de producción</label><input id="draft-scale" name="escala_produccion" maxlength="90" placeholder="Ej. Piezas únicas y series cortas"></div>
+            </div>
+          </div>
+          <label for="draft-description">Descripción</label>
+          <textarea id="draft-description" name="descripcion" maxlength="1200" rows="3" placeholder="Contá qué tipo de trabajos hacés y cómo te pueden consultar."></textarea>
+
+          <section class="editor-section">
+            <h3>Contacto público</h3>
+            <p class="field-help">Completá al menos un medio de contacto que quieras mostrar en el mapa.</p>
+            <div class="form-row">
+              <div><label for="draft-email">Correo comercial</label><input id="draft-email" name="correo_publico" type="email" maxlength="160"></div>
+              <div><label for="draft-phone">Teléfono</label><input id="draft-phone" name="telefono" type="tel" autocomplete="tel" maxlength="25" placeholder="+54 …"></div>
+            </div>
+            <div class="form-row">
+              <div><label for="draft-whatsapp">WhatsApp</label><input id="draft-whatsapp" name="whatsapp" type="tel" maxlength="25" placeholder="+54 9 …"></div>
+              <div><label for="draft-web">Sitio web o portfolio</label><input id="draft-web" name="web" type="url" maxlength="300" placeholder="https://"></div>
+            </div>
+            <label for="draft-social">Red social u otro enlace</label>
+            <input id="draft-social" name="red_social" type="url" maxlength="300" placeholder="https://instagram.com/tu.usuario">
+          </section>
+
+          <details class="location-details">
+            <summary>Ubicación comercial exacta (opcional)</summary>
+            <p class="field-help">Con la localidad alcanza para ubicar la ficha. Si querés señalar un espacio comercial, podés indicar dirección y coordenadas.</p>
+            <label for="draft-address">Dirección comercial</label>
+            <input id="draft-address" name="direccion" maxlength="150" autocomplete="street-address">
+            <div class="form-row">
+              <div><label for="draft-lat">Latitud</label><input id="draft-lat" name="latitud" type="number" step="any" min="-28.4" max="-25.3" placeholder="-27.37"></div>
+              <div><label for="draft-lon">Longitud</label><input id="draft-lon" name="longitud" type="number" step="any" min="-56.3" max="-53.3" placeholder="-55.90"></div>
+            </div>
+          </details>
+
+          <section class="editor-section photo-section" aria-labelledby="photo-title">
+            <h3 id="photo-title">Foto de portada</h3>
+            <div id="owner-photo-slot"></div>
+            <label for="draft-photo" class="sr-only">Subir foto de portada</label>
+            <input id="draft-photo" type="file" accept="image/jpeg,image/png,image/webp" aria-describedby="photo-help">
+            <p id="photo-help" class="field-help">Una imagen JPG, PNG o WebP.</p>
+            <button class="text-button" type="button" id="remove-photo" data-account="remove-photo" hidden>Quitar foto del borrador</button>
+          </section>
+
+          <label class="consent-check"><input id="draft-consent" name="acepta_publicar" type="checkbox">
+            <span>Quiero que los datos y la foto de esta ficha se vean en el mapa una vez aprobados.</span>
+          </label>
+        </fieldset>
+        <p id="editor-message" class="inline-feedback" role="status" hidden></p>
+        <div class="dialog-actions editor-actions">
+          <button type="submit" value="save" class="button secondary" id="draft-save">Guardar borrador</button>
+          <button type="submit" value="submit" class="button primary" id="draft-submit">Enviar a revisión</button>
+          <button type="button" class="button secondary" data-account="withdraw" id="draft-withdraw" hidden>Retirar para editar</button>
+          <button type="button" class="text-button pause-link" data-account="pause" id="draft-pause" hidden>Pausar ficha</button>
+          <button type="button" class="text-button danger-link" data-account="delete-profile" id="draft-delete" hidden>Eliminar mi ficha</button>
+        </div>
+      </form>
+    </div>
+  </dialog>
+
+
+  <dialog id="rating-dialog" class="modal" aria-labelledby="rating-title">
+    <div class="modal-inner">
+      <form method="dialog" class="modal-close">
+        <button class="icon-button" type="submit" aria-label="Cerrar calificación"><svg class="icon"><use href="#i-close"></use></svg></button>
+      </form>
+      <h2 id="rating-title">Calificá el servicio</h2>
+      <p id="rating-profile"></p>
+      <form id="rating-form" class="account-form">
+        <p class="field-help">Cada cuenta puede calificar una vez a cada emprendimiento.</p>
+        <fieldset>
+          <legend>Elegí de 1 a 5 estrellas</legend>
+          <div id="rating-stars" class="rating-stars"></div>
+        </fieldset>
+        <label class="consent-check"><input id="rating-hired" name="hired" type="checkbox" required>
+          <span>Confirmo que contraté este servicio.</span>
+        </label>
+        <button class="button primary" id="rating-submit" type="submit">Publicar calificación</button>
+      </form>
+      <p id="rating-message" class="inline-feedback" role="status" hidden></p>
+    </div>
+  </dialog>
+
+  <div class="toast" id="toast" role="status" hidden></div>
+</body>
+</html>

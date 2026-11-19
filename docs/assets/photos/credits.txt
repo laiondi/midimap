@@ -1,0 +1,9 @@
+Laion (Waterfall bench): https://laiondi.github.io/laiondesignstudio/
+graphic: https://unsplash.com/photos/stationery-supplies-on-green-surface-7_bz84zOU7g
+architecture: https://unsplash.com/photos/modern-concrete-and-wood-house-with-trees-F-slnkFvcag
+textile: https://unsplash.com/photos/a-close-up-of-a-sewing-machine-on-a-table-ebgaor66TSk
+video: https://unsplash.com/photos/film-crew-working-with-a-professional-camera-on-set-NAoSEZonwZY
+gear: https://unsplash.com/photos/a-camera-a-camera-lens-a-pen-and-other-items-on-a-table-6LeKnXuKdk0
+workshop: https://unsplash.com/photos/a-workbench-in-a-wooden-cabin-with-lots-of-tools-gKvDtyVPNYw
+prototype: https://unsplash.com/photos/3d-printer-with-filament-spools-and-printed-objects-IBffrp08OIo
+Fotos de ejemplo: https://unsplash.com/license

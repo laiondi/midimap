@@ -140,6 +140,10 @@ function backendSupabase() {
     user: getUser,
     logout: async () => dato(await client.auth.signOut({ scope: "local" })),
     context: () => rpc("contexto_de_cuenta"),
+    manifesto: async () => dato(await client.from("manifiesto").select("id,version,titulo,bajada,contenido,cierre,actualizado").eq("id", true).single()),
+    saveManifesto: (version, model) => mutate("guardar_manifiesto", { p_version: version, p_datos: model }),
+    notifications: () => allRows(() => client.rpc("notificaciones_de_gestion")),
+    markRequestRead: (id, version) => rpc("marcar_solicitud_leida", { p_ficha: id, p_version: version }),
     sendCode: async (email) => dato(await client.auth.signInWithOtp({ email })),
     checkCode: async (email, token) => dato(await client.auth.verifyOtp({ email, token, type: "email" })),
     publicList: listaPublica,
@@ -223,6 +227,8 @@ function backendDemo() {
       drafts: data?.drafts || {}, published: data?.published || {},
       examples: data?.examples || structuredClone(sampleDrafts), ratings: data?.ratings || [],
       sponsors: data?.sponsors || Object.fromEntries(sampleAds.map((row) => [row.id, { ...row }])),
+      manifesto: data?.manifesto || structuredClone(initialManifesto),
+      notificationReads: data?.notificationReads || {},
     };
   }
   function write(state) {
@@ -238,6 +244,19 @@ function backendDemo() {
   }
   function moderation() {
     if (session !== "admin") throw Error("Ingresá como administrador.");
+  }
+  function requireOwner() {
+    const user = requireUser();
+    if (session === "admin") throw Error("La cuenta administradora se usa para Gestión. Usá una cuenta titular para publicar una ficha.");
+    return user;
+  }
+  function notificationRows(storage) {
+    const viewed = storage.notificationReads[current().id] || {};
+    return [...Object.values(storage.drafts), ...Object.values(storage.examples)]
+      .filter((row) => row.estado === "en_revision")
+      .sort((a, b) => b.actualizada.localeCompare(a.actualizada) || a.id.localeCompare(b.id))
+      .map((row) => ({ ficha: row.id, version: row.version, nombre: row.nombre, actualizada: row.actualizada,
+        tipo: storage.published[row.id] ? "modificacion" : "alta", leida: (viewed[row.id] || 0) >= row.version }));
   }
   function currentVersion(row, expected) {
     if (!row || row.version !== expected) throw Error("La ficha cambió. Volvé a abrirla.");
@@ -277,6 +296,27 @@ function backendDemo() {
       localStorage.removeItem(sessionKey);
     },
     context: async () => ({ es_administrador: session === "admin", puede_moderar: session === "admin" }),
+    manifesto: async () => read().manifesto,
+    saveManifesto: async (version, model) => {
+      moderation();
+      const storage = read();
+      if (storage.manifesto.version !== version) throw Error("El manifiesto cambió. Recargalo antes de volver a guardar.");
+      const row = { ...model, id: true, version: version + 1, actualizado: new Date().toISOString() };
+      storage.manifesto = row;
+      write(storage);
+      return row;
+    },
+    notifications: async () => { moderation(); return notificationRows(read()); },
+    markRequestRead: async (id, version) => {
+      moderation();
+      const storage = read();
+      if (!notificationRows(storage).some((row) => row.ficha === id && row.version === version)) return false;
+      const viewed = storage.notificationReads[current().id] || {};
+      viewed[id] = Math.max(viewed[id] || 0, version);
+      storage.notificationReads[current().id] = viewed;
+      write(storage);
+      return true;
+    },
     publicList: async () => {
       const storage = read();
       const examples = initialProfiles.filter((profile) => storage.examples["ejemplo:" + profile.id]?.estado === "publicada")
@@ -287,13 +327,13 @@ function backendDemo() {
       return [...examples, ...Object.values(storage.published)
         .map((row) => enlazarFicha(row, row.foto_ruta, summaries(storage, row))).filter(Boolean)];
     },
-    ownerDraft: async (id) => requireUser().id === id ? read().drafts[id] || null : null,
+    ownerDraft: async (id) => requireOwner().id === id ? read().drafts[id] || null : null,
     publicVisible: async (id) => {
       const storage = read();
       return Boolean(storage.published[id] || storage.examples["ejemplo:" + id]?.estado === "publicada");
     },
     save: async (version, model) => {
-      const { id: titular } = requireUser();
+      const { id: titular } = requireOwner();
       const storage = read();
       const before = storage.drafts[titular];
       if ((before?.version ?? 0) !== version) throw Error("La ficha cambió. Volvé a abrirla.");
@@ -307,7 +347,7 @@ function backendDemo() {
       write(storage);
       return row;
     },
-    submit: async (draft) => transition(draft, (row) => { row.estado = "en_revision"; row.nota_revision = null; }),
+    submit: async (draft) => { requireOwner(); return transition(draft, (row) => { row.estado = "en_revision"; row.nota_revision = null; }); },
     withdraw: async (draft) => transition(draft, (row) => { row.estado = "borrador"; }),
     pause: async (draft) => transition(draft, (row, storage) => {
       row.estado = "pausada";
@@ -385,6 +425,7 @@ function backendDemo() {
     photoUrl: async (path) => path || "",
     upload: async (blob, target) => new Promise((resolve, reject) => {
       if (target === "patrocinio") moderation();
+      else requireOwner();
       const reader = new FileReader();
       reader.onload = () => resolve(reader.result);
       reader.onerror = () => reject(Error("No se pudo leer la foto."));

@@ -10,17 +10,19 @@
   <link rel="icon" href="assets/midi-simbolo.webp" type="image/webp">
   <link rel="preload" href="assets/fonts/bricolage.woff2" as="font" type="font/woff2" crossorigin>
   <link rel="stylesheet" href="assets/vendor/leaflet/leaflet.css">
-  <link rel="stylesheet" href="styles.css?v=2.3-formularios-1">
+  <link rel="stylesheet" href="styles.css?v=2.3-gestion-2">
   <script defer src="assets/vendor/leaflet/leaflet.js"></script>
-  <script defer src="data.js?v=2.3-formularios-1"></script>
+  <script defer src="data.js?v=2.3-gestion-2"></script>
   <script defer src="assets/map-data.js"></script>
   <script defer src="assets/vendor/supabase/supabase.js"></script>
   <script defer src="config.js"></script>
-  <script defer src="backend.js?v=2.3-formularios-1"></script>
-  <script defer src="app.js?v=2.3-formularios-1"></script>
+  <script defer src="backend.js?v=2.3-gestion-2"></script>
+  <script defer src="app.js?v=2.3-gestion-2"></script>
   <script defer src="ratings.js?v=2.2"></script>
   <script defer src="sponsors.js?v=2.3-formularios-1"></script>
-  <script defer src="account.js?v=2.3-formularios-1"></script>
+  <script defer src="manifesto.js?v=2.3-gestion-2"></script>
+  <script defer src="notifications.js?v=2.3-gestion-2"></script>
+  <script defer src="account.js?v=2.3-gestion-2"></script>
 </head>
 <body>
   <svg class="icon-sprite" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
@@ -71,11 +73,17 @@
         <button class="nav-button" type="button" data-section="saved" aria-label="Guardados">
           <svg class="icon"><use href="#i-bookmark"></use></svg><span>Guardados</span><span id="saved-count" class="saved-count" hidden></span>
         </button>
+        <button class="nav-button" type="button" data-section="manifesto" aria-label="Manifiesto">
+          <svg class="icon"><use href="#i-info"></use></svg><span>Manifiesto</span>
+        </button>
         <button class="nav-button" type="button" data-section="management" id="management-nav" aria-label="Gestión" hidden>
-          <svg class="icon"><use href="#i-manage"></use></svg><span>Gestión</span>
+          <svg class="icon"><use href="#i-manage"></use></svg><span>Gestión</span><span id="management-unread" class="notification-count" hidden></span>
         </button>
       </nav>
       <div class="account-actions">
+        <button type="button" class="icon-button notifications-button" id="notifications-button" aria-label="Ver solicitudes" title="Solicitudes" hidden>
+          <svg class="icon"><use href="#i-mail"></use></svg><span id="notifications-unread" class="notification-count" hidden></span>
+        </button>
         <button type="button" class="button secondary account-button" data-account="account" id="account-button" aria-label="Ingresar">
           <svg class="icon"><use href="#i-user"></use></svg><span>Ingresar</span>
         </button>
@@ -189,6 +197,20 @@
     </footer>
   </main>
 
+  <main id="manifesto-panel" class="shell manifesto-panel" aria-labelledby="manifesto-title" tabindex="-1" hidden>
+    <article class="manifesto-card">
+      <p class="manifesto-eyebrow">Manifiesto</p>
+      <h1 id="manifesto-title">Mapa Creativo de Misiones</h1>
+      <div id="manifesto-content" hidden>
+        <p id="manifesto-subtitle" class="manifesto-subtitle"></p>
+        <div id="manifesto-body" class="manifesto-body"></div>
+        <p class="manifesto-closing"><strong id="manifesto-closing"></strong></p>
+      </div>
+      <p id="manifesto-status" class="field-help" role="status"></p>
+      <button type="button" class="button secondary" id="manifesto-retry" hidden>Volver a intentar</button>
+    </article>
+  </main>
+
   <main id="management-panel" class="shell management-panel" aria-labelledby="review-title" tabindex="-1" hidden>
     <div class="management-heading">
       <h1 id="review-title">Gestión</h1>
@@ -208,10 +230,15 @@
         </form>
       </section>
       <div id="admin-content" hidden>
+        <div class="notifications-summary">
+          <div><p id="notifications-summary" role="status">Cargando solicitudes…</p><p id="notifications-error" class="is-error" role="status" hidden></p></div>
+          <button type="button" class="button secondary" id="notifications-refresh">Actualizar</button>
+        </div>
         <div class="view-switch admin-switch" role="group" aria-label="Secciones de gestión">
           <button type="button" data-admin-view="fichas" aria-pressed="true">Fichas</button>
-          <button type="button" data-admin-view="solicitudes" aria-pressed="false">Solicitudes</button>
+          <button type="button" data-admin-view="solicitudes" aria-pressed="false">Solicitudes <span id="requests-count" class="notification-count" hidden></span></button>
           <button type="button" data-admin-view="publicidad" aria-pressed="false">Publicidad</button>
+          <button type="button" data-admin-view="manifesto" aria-pressed="false">Manifiesto</button>
         </div>
         <section id="admin-fichas" aria-label="Gestión de fichas">
           <div class="account-form admin-filter" id="review-filter-control">
@@ -259,6 +286,28 @@
               <button type="submit" class="button primary">Guardar anuncio</button>
               <button type="button" class="text-button danger-link" id="ad-remove" hidden>Eliminar anuncio</button>
             </div>
+          </form>
+        </section>
+        <section id="admin-manifesto" aria-label="Edición del manifiesto" hidden>
+          <h2>Manifiesto público</h2>
+          <p class="field-help">Editá el texto que se muestra en la pestaña Manifiesto. Los cambios aparecen en la web cuando los publicás.</p>
+          <form id="manifesto-form" class="account-form manifesto-form">
+            <label for="manifesto-edit-title">Título · obligatorio</label>
+            <input id="manifesto-edit-title" name="titulo" minlength="2" maxlength="120" required>
+            <label for="manifesto-edit-subtitle">Bajada · opcional</label>
+            <textarea id="manifesto-edit-subtitle" name="bajada" maxlength="250" rows="2"></textarea>
+            <label for="manifesto-edit-body">Texto del manifiesto · obligatorio</label>
+            <textarea id="manifesto-edit-body" name="contenido" minlength="20" maxlength="20000" rows="12" aria-describedby="manifesto-paragraph-help" required></textarea>
+            <p id="manifesto-paragraph-help" class="field-help">Separá los párrafos con una línea en blanco.</p>
+            <label for="manifesto-edit-closing">Cierre destacado · opcional</label>
+            <textarea id="manifesto-edit-closing" name="cierre" maxlength="500" rows="3"></textarea>
+            <p id="manifesto-version" class="field-help"></p>
+            <div class="dialog-actions">
+              <button type="submit" class="button primary">Publicar cambios del manifiesto</button>
+              <button type="button" class="button secondary" id="manifesto-reload">Recargar texto publicado</button>
+              <button type="button" class="button secondary" data-section="manifesto">Ver manifiesto público</button>
+            </div>
+            <p id="manifesto-message" class="inline-feedback" role="status" hidden></p>
           </form>
         </section>
       </div>
@@ -331,7 +380,7 @@
         </div>
       </form>
       <div id="signed-in-access" class="dialog-actions" hidden>
-        <button type="button" class="button primary" data-account="profile">Mi ficha</button>
+        <button type="button" class="button primary" data-account="profile" id="account-profile-button">Mi ficha</button>
         <button type="button" class="button secondary" id="review-button" data-account="review" hidden>Gestión</button>
         <button type="button" class="button secondary" data-account="logout">Cerrar sesión</button>
       </div>

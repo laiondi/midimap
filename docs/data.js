@@ -1,3 +1,12 @@
+const initialManifesto = {
+  "id": true,
+  "version": 1,
+  "titulo": "Mapa Creativo de Misiones",
+  "bajada": "Una red para conectar el talento, el conocimiento y la producción.",
+  "contenido": "El Mapa Creativo de Misiones es una iniciativa impulsada por MiDi para visibilizar, conectar y fortalecer a los profesionales, estudios, talleres, empresas y espacios vinculados al diseño y las industrias creativas de la provincia.\n\nCreemos que el desarrollo del sector depende de la capacidad de encontrarnos, reconocer nuestras capacidades y generar nuevas oportunidades de colaboración.\n\nEsta plataforma busca facilitar el encuentro entre quienes ofrecen servicios, conocimientos y capacidades productivas, y quienes necesitan desarrollarlos.\n\nUn espacio abierto para descubrir talentos, encontrar proveedores, establecer vínculos profesionales y potenciar el trabajo colaborativo.",
+  "cierre": "Nuestro objetivo es simple: conectar necesidades con capacidades y transformar esas conexiones en oportunidades."
+};
+
 const categoryPalettes = {
   industrial: { icon: "industrial", color: "#f5ab00", light: "#fff0c3", text: "#725100", ink: "#231748" },
   graphic: { icon: "graphic", color: "#f57097", light: "#fde1eb", text: "#8e2f5a", ink: "#261544" },

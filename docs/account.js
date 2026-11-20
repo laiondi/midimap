@@ -27,7 +27,7 @@ let ownerPhoto = "";
 let ownerPublic = false;
 let reviewQueue = [];
 let reviewSelection = null;
-let adminView = "fichas";
+let adminView = "solicitudes";
 let mfaFactors = null;
 let mfaFactorId = null;
 let sessionVersion = 0;
@@ -111,6 +111,10 @@ function paintAccountNav() {
   account.setAttribute("aria-label", label);
   join.querySelector("span").textContent = sessionUser ? "Mi ficha" : "Sumá tu perfil";
   join.querySelector("use").setAttribute("href", sessionUser ? "#i-user" : "#i-plus");
+  join.hidden = canManage;
+  byId("account-profile-button").hidden = canManage;
+  byId("notifications-button").hidden = !canManage;
+  for (const button of selectAll('.header-nav [data-section]:not([data-section="management"])')) button.hidden = canManage;
   byId("management-nav").hidden = !canManage;
   byId("review-button").hidden = !canManage;
 }
@@ -122,6 +126,8 @@ async function refreshSession() {
   const context = account ? await backend.context().catch(() => null) : null;
   if (request < lastSessionApplied) return;
   lastSessionApplied = request;
+  const previousUser = sessionUser?.id;
+  const wasAdmin = canManage;
   if (sessionUser?.id && sessionUser.id !== account?.id) {
     ownerDraft = null;
     ownerPhoto = "";
@@ -134,7 +140,9 @@ async function refreshSession() {
     byId("review-contents").replaceChildren();
     byId("sponsor-list").replaceChildren();
     clearSponsorEditor();
-    adminView = "fichas";
+    clearManifestoEditor();
+    configureNotifications(false);
+    adminView = "solicitudes";
     accessCodeEmail = "";
     if (editorDialog.open) editorDialog.close();
     if (state.section === "management") setSection("explore");
@@ -142,7 +150,9 @@ async function refreshSession() {
   sessionUser = account;
   canManage = Boolean(account && context?.es_administrador);
   paintAccountNav();
+  configureNotifications(Boolean(context?.puede_moderar));
   if (!canManage && state.section === "management") setSection("explore");
+  if (canManage && (!wasAdmin || previousUser !== account?.id)) void showReview();
 }
 
 async function showAccess(intent = "account", clearCode = true) {
@@ -309,6 +319,7 @@ async function paintOwnerPhoto() {
 }
 
 async function showEditor() {
+  if (canManage) return showReview();
   if (!sessionUser) {
     await showAccess("profile");
     return;
@@ -395,6 +406,10 @@ async function renderQueue() {
     const location = document.createElement("span");
     location.textContent = [statusNames[entry.estado], categories[entry.categoria]?.label, towns[entry.localidad]?.label].filter(Boolean).join(" · ");
     button.append(title, location);
+    const requestLabel = document.createElement("span");
+    requestLabel.className = "request-read-label";
+    requestLabel.hidden = true;
+    button.append(requestLabel);
     const remove = document.createElement("button");
     remove.type = "button";
     remove.className = "button admin-delete-button";
@@ -404,24 +419,29 @@ async function renderQueue() {
     row.append(button, remove);
     list.append(row);
   }
+  paintRequestNotifications();
 }
 
 async function renderAdmin(view) {
+  if (!["fichas", "solicitudes", "publicidad", "manifesto"].includes(view)) return;
   adminView = view;
   byId("review-verification").hidden = true;
   clearMfa();
   byId("admin-content").hidden = false;
-  byId("admin-fichas").hidden = view === "publicidad";
+  byId("admin-fichas").hidden = !["fichas", "solicitudes"].includes(view);
   byId("admin-publicidad").hidden = view !== "publicidad";
+  byId("admin-manifesto").hidden = view !== "manifesto";
   byId("review-filter-control").hidden = view === "solicitudes";
   byId("review-filter").value = view === "solicitudes" ? "en_revision" : "";
-  for (const name of ["fichas", "solicitudes", "publicidad"]) {
+  for (const name of ["fichas", "solicitudes", "publicidad", "manifesto"]) {
     select('[data-admin-view="' + name + '"]', managementPanel).setAttribute("aria-pressed", name === view);
   }
+  await refreshAdminNotifications(false);
   if (view === "publicidad") {
     clearSponsorEditor();
     await loadSponsorAdmin();
-  } else await renderQueue();
+  } else if (view === "manifesto") await loadManifestoEditor();
+  else await renderQueue();
 }
 
 async function showReview() {
@@ -439,6 +459,7 @@ async function showReview() {
     const context = await backend.context();
     canManage = Boolean(context.es_administrador);
     paintAccountNav();
+    configureNotifications(Boolean(context.puede_moderar));
     if (!canManage) throw Error("Esta cuenta no tiene acceso a la gestión.");
     if (context.puede_moderar) {
       await renderAdmin(adminView);
@@ -488,6 +509,7 @@ async function chooseReview(id) {
   byId("review-prompt").hidden = true;
   detail.scrollIntoView({ block: "nearest" });
   feedback("review-message");
+  void markRequestRead(entry);
   try {
     const [visible, src] = await Promise.all([
       backend.publicVisible(entry.id),
@@ -536,7 +558,7 @@ function moderateProfile(action, entry = reviewSelection) {
   if (action === "remove" && !confirm('¿Eliminar la ficha de "' + (entry.nombre || "emprendimiento sin nombre") + '" y sus calificaciones? Esta acción es definitiva.')) return;
   return runAction(managementPanel, "review-message", async () => {
     await backend[action](entry);
-    await Promise.all([renderQueue(), refreshDirectory()]);
+    await Promise.all([renderQueue(), refreshDirectory(), refreshAdminNotifications(false)]);
     feedback("review-message", action === "remove" ? "Ficha eliminada." : "Ficha pausada y retirada del mapa.");
   }, "No se pudo actualizar la ficha.");
 }
@@ -547,6 +569,7 @@ async function resolveReview(approved) {
     if (!reviewSelection) throw Error("Elegí una ficha para revisar.");
     if (!approved && !note) throw Error("Escribí qué tiene que corregir el titular.");
     await backend.resolve(reviewSelection, approved, note);
+    await refreshAdminNotifications(false);
     await renderQueue();
     await refreshDirectory();
     feedback("review-message", approved ? "Ficha publicada en el mapa." : "Correcciones enviadas al titular.");
@@ -576,6 +599,7 @@ byId("verify-code-form").addEventListener("submit", (event) => {
 });
 
 function continueAccess() {
+  if (canManage) return showReview();
   if (accessIntent === "profile") return showEditor();
   if (accessIntent === "rating") return resumeRating();
   if (accessIntent === "review") return showReview();
@@ -619,7 +643,8 @@ byId("mfa-form").addEventListener("submit", (event) => {
   const code = byId("mfa-code").value;
   void runAction(managementPanel, "review-message", async () => {
     await backend.mfaVerify(mfaFactorId, code);
-    await renderAdmin("fichas");
+    await refreshSession();
+    await renderAdmin(adminView);
   }, "Revisá el código del autenticador y volvé a intentar.");
 });
 

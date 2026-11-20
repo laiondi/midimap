@@ -199,12 +199,14 @@ function resetFilters() {
 function activateSection(section) {
   state.section = section;
   const managing = section === "management";
-  byId("explorar").hidden = managing;
-  select(".hero").hidden = managing;
+  const manifest = section === "manifesto";
+  byId("explorar").hidden = managing || manifest;
+  select(".hero").hidden = managing || manifest;
   byId("management-panel").hidden = !managing;
+  byId("manifesto-panel").hidden = !manifest;
   const skip = select(".skip-link");
-  skip.href = managing ? "#management-panel" : "#explorar";
-  skip.textContent = managing ? "Ir a Gestión" : "Ir al explorador";
+  skip.href = managing ? "#management-panel" : manifest ? "#manifesto-panel" : "#explorar";
+  skip.textContent = managing ? "Ir a Gestión" : manifest ? "Ir al manifiesto" : "Ir al explorador";
   for (const button of selectAll(".header-nav [data-section]")) {
     const current = button.dataset.section === section;
     button.classList.toggle("is-active", current);
@@ -213,17 +215,22 @@ function activateSection(section) {
   }
   if (!managing) {
     clearMfa();
-    if (map && state.view === "map") map.invalidateSize({ pan: false });
+    if (!manifest && map && state.view === "map") map.invalidateSize({ pan: false });
   }
 }
 
 function setSection(section) {
-  if (!["explore", "saved", "management"].includes(section) || section === state.section) return;
+  if (!["explore", "saved", "management", "manifesto"].includes(section) || section === state.section) return;
   if (section === "management") {
     void showReview();
     return;
   }
   activateSection(section);
+  if (section === "manifesto") {
+    void refreshManifesto();
+    byId("manifesto-panel").focus({ preventScroll: true });
+    return;
+  }
   resetFilters();
 }
 
@@ -738,7 +745,7 @@ function townPopup(profiles, title) {
 }
 
 function renderPins() {
-  if (!map || !Number.isFinite(map.getZoom()) || state.view !== "map" || state.section === "management") return;
+  if (!map || !Number.isFinite(map.getZoom()) || state.view !== "map" || !["explore", "saved"].includes(state.section)) return;
   markerLayer.clearLayers();
   pins = groupPins(displayed).map(({ point, profiles }) => {
     const first = profiles[0];

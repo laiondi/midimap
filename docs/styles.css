@@ -619,3 +619,44 @@ body:has(dialog[open]) { overflow: hidden; }
   .add-profile .icon { display: none; }
   .workspace-dialog .form-row { grid-template-columns: 1fr; }
 }
+
+.notification-count { flex-shrink: 0; display: inline-flex; align-items: center; justify-content: center; min-width: 20px; height: 20px; padding-inline: 5px; border-radius: 10px; background: var(--gold); color: var(--ink); font: 750 11px/1 var(--text); }
+.notifications-button { position: relative; border: 1px solid var(--line); background: var(--white); flex-shrink: 0; }
+.notifications-button .notification-count { position: absolute; top: -6px; right: -6px; }
+.notifications-summary { display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 12px; padding: 14px 16px; margin-bottom: 16px; border: 1px solid var(--line); border-radius: 10px; background: var(--lavender); }
+.notifications-summary p { margin: 0; font-size: 14px; }
+.admin-switch { flex-wrap: wrap; max-width: 100%; }
+.admin-switch button { display: inline-flex; align-items: center; gap: 6px; }
+.request-read-label { color: var(--muted); font-size: 12px; }
+.review-list-button.has-unread-request { border-left: 4px solid var(--gold); background: #fff8df; }
+.review-list-button.has-unread-request .request-read-label { color: #725100; font-weight: 700; }
+.manifesto-panel { padding-block: 42px 64px; }
+.manifesto-card { max-width: 920px; margin-inline: auto; padding: clamp(25px, 5vw, 62px); border: 1px solid var(--line); border-radius: 19px; background: var(--white); }
+.manifesto-eyebrow { font: 12px/1.4 var(--mono); text-transform: uppercase; letter-spacing: .12em; color: #655898; margin-bottom: 16px; }
+.manifesto-card h1 { max-width: 17ch; font: 750 clamp(36px, 5.2vw, 60px)/1.05 var(--display); letter-spacing: -.045em; color: var(--ink); }
+.manifesto-subtitle { max-width: 35ch; margin-block: 22px 30px; font-size: clamp(20px, 2.4vw, 26px); font-weight: 650; line-height: 1.4; color: #655898; }
+.manifesto-body { max-width: 69ch; font-size: 17px; line-height: 1.75; }
+.manifesto-body p { margin-top: 22px; white-space: pre-line; }
+.manifesto-closing { max-width: 58ch; margin-top: 32px; padding-top: 22px; border-top: 3px solid var(--gold); font-size: 20px; line-height: 1.5; color: var(--ink); }
+.manifesto-form { max-width: 850px; }
+.manifesto-form textarea { line-height: 1.6; }
+@media (max-width: 560px) {
+  .manifesto-panel { padding-block: 20px 36px; }
+  .manifesto-card { padding: 24px 20px; }
+  .manifesto-body { font-size: 16px; }
+  .manifesto-closing { font-size: 18px; }
+  .account-actions { gap: 7px; }
+  .management-panel .admin-switch { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .management-panel .admin-switch button { flex: none; min-height: 44px; padding: 8px 10px; }
+}
+@media (max-width: 720px) {
+  .header-inner { grid-template-columns: 1fr auto; }
+  .header-inner .header-nav { grid-row: 2; grid-column: 1 / -1; min-height: 46px; justify-content: space-around; }
+  .header-inner .account-actions { grid-row: 1; grid-column: 2; }
+  .header-inner .header-nav .nav-button > span { display: inline; }
+  .header-inner .header-nav .nav-button > .notification-count { flex-shrink: 0; display: inline-flex; }
+  .header-inner .header-nav .saved-count { position: static; display: inline-flex; align-items: center; min-width: 18px; padding: 2px 4px; font-size: 10px; }
+}
+@media (max-width: 560px) {
+  .header-inner .header-nav .nav-button { min-width: 0; padding-inline: 6px; gap: 5px; font-size: 13px; }
+}

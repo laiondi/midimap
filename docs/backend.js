@@ -124,7 +124,7 @@ function backendSupabase() {
 
   async function upload(blob, target = "ficha") {
     const { data, error } = await client.functions.invoke("subir-foto", {
-      body: blob, headers: { "Content-Type": "image/jpeg", "x-midi-imagen": target },
+      body: blob, headers: { "Content-Type": blob.type, "x-midi-imagen": target },
     });
     if (error) {
       const payload = await error.context?.json?.().catch(() => null);

@@ -254,26 +254,65 @@ function findProfile(id) {
 }
 
 function safeWebUrl(value) {
-  if (!value) return "";
+  if (typeof value !== "string" || !value || value.length > 4096
+    || /[\s\u0000-\u001f\u007f<>"'\\]/u.test(value)
+    || /%(?:0[0-9a-f]|1[0-9a-f]|7f)/i.test(value)
+    || !/^https:\/\/[a-z0-9.-]+(?::\d{1,5})?(?:[/?#]|$)/i.test(value)) return "";
   try {
     const url = new URL(value);
-    return url.protocol === "https:" && !url.username && !url.password ? url.href : "";
+    const host = url.hostname;
+    const domain = /^(?:[a-z0-9](?:[a-z0-9-]{0,61}[a-z0-9])?\.)+(?:[a-z]{2,63}|xn--[a-z0-9-]{2,59})$/i;
+    return url.protocol === "https:" && !url.username && !url.password && domain.test(host)
+      && !/\.(?:local|localhost|internal|invalid|test)$/i.test(host)
+      && (!url.port || Number(url.port) >= 1) ? url.href : "";
   } catch {
     return "";
   }
 }
 
 function safeMailto(value) {
-  return typeof value === "string" && /^[a-z0-9_.+%-]+@[a-z0-9-]+(\.[a-z0-9-]+)+$/i.test(value)
-    ? "mailto:" + value.replaceAll("%", "%25") : "";
+  if (typeof value !== "string" || value.length > 160) return "";
+  const parts = /^([a-z0-9_+%.-]{1,64})@((?:[a-z0-9](?:[a-z0-9-]{0,61}[a-z0-9])?\.)+[a-z]{2,63})$/i.exec(value);
+  if (!parts || /(^\.|\.$|\.\.)/.test(parts[1])) return "";
+  return "mailto:" + encodeURIComponent(parts[1]) + "@" + parts[2];
 }
 
 function isPublicLink(value) {
-  return Boolean(safeWebUrl(value) && /^https:\/\/[a-z0-9][a-z0-9.-]*\.[a-z0-9]+(?::\d{1,5})?(?:[/?#][^\s<>"'\\]*)?$/i.test(value));
+  return typeof value === "string" && value.length <= 300 && Boolean(safeWebUrl(value));
 }
 
 function publicPhone(value) {
   return typeof value === "string" && /^[1-9][0-9]{7,14}$/.test(value) ? value : "";
+}
+
+function normalizePhone(value) {
+  if (!/^\+?[0-9][0-9() .-]*$/.test(value)) return value;
+  return value.replace(/[() .-]/g, "").replace(/^\+/, "");
+}
+
+function showEmailContact() {
+  const email = activeProfile?.email;
+  const mailto = safeMailto(email);
+  if (!mailto) return;
+  byId("contact-email").value = email;
+  byId("contact-mail-app").href = mailto;
+  byId("contact-gmail").href = "https://mail.google.com/mail/?view=cm&fs=1&to=" + encodeURIComponent(email);
+  byId("contact-outlook").href = "https://outlook.live.com/mail/0/deeplink/compose?to=" + encodeURIComponent(email);
+  byId("contact-email-status").textContent = "";
+  byId("email-dialog").showModal();
+}
+
+async function copyContactEmail() {
+  const field = byId("contact-email");
+  if (!safeMailto(field.value)) return;
+  try {
+    await navigator.clipboard.writeText(field.value);
+    byId("contact-email-status").textContent = "Correo copiado.";
+  } catch {
+    field.focus();
+    field.select();
+    byId("contact-email-status").textContent = "Seleccioná y copiá el correo que aparece arriba.";
+  }
 }
 
 function socialLabel(url) {
@@ -304,7 +343,7 @@ function openProfile(profile) {
   const email = safeMailto(profile.email);
   const urlButton = externalContact(url, profile.linkLabel || "Ver sitio web", "primary");
   const socialButton = social ? externalContact(social, socialLabel(social), url ? "secondary" : "primary") : "";
-  const emailButton = email ? '<a class="button secondary" href="' + escapeHtml(email) + '">' + icon("mail") + ' Escribir por correo</a>' : "";
+  const emailButton = email ? '<button type="button" class="button secondary" data-email-contact>' + icon("mail") + ' Escribir por correo</button>' : "";
   const phone = publicPhone(profile.phone);
   const callButton = phone ? `<a class="button secondary" href="tel:+${phone}">${icon("phone")} +${phone}</a>` : "";
   const whatsapp = publicPhone(profile.whatsapp);
@@ -505,6 +544,8 @@ document.addEventListener("click", (event) => {
   }
   if (button.hasAttribute("data-show-on-map")) viewProfileOnMap(activeProfile);
   if (button.hasAttribute("data-copy")) void copyProfile();
+  if (button.hasAttribute("data-email-contact")) showEmailContact();
+  if (button.hasAttribute("data-copy-email")) void copyContactEmail();
   if (map && mapAction === "fit") fitMap();
   if (map && mapAction === "in") map.zoomIn(1, { animate: animate() });
   if (map && mapAction === "out") map.zoomOut(1, { animate: animate() });

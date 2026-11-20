@@ -10,17 +10,17 @@
   <link rel="icon" href="assets/midi-simbolo.webp" type="image/webp">
   <link rel="preload" href="assets/fonts/bricolage.woff2" as="font" type="font/woff2" crossorigin>
   <link rel="stylesheet" href="assets/vendor/leaflet/leaflet.css">
-  <link rel="stylesheet" href="styles.css?v=2.3-mapa-1">
+  <link rel="stylesheet" href="styles.css?v=2.3-formularios-1">
   <script defer src="assets/vendor/leaflet/leaflet.js"></script>
-  <script defer src="data.js"></script>
+  <script defer src="data.js?v=2.3-formularios-1"></script>
   <script defer src="assets/map-data.js"></script>
   <script defer src="assets/vendor/supabase/supabase.js"></script>
   <script defer src="config.js"></script>
-  <script defer src="backend.js?v=2.2"></script>
-  <script defer src="app.js?v=2.3-mapa-1"></script>
+  <script defer src="backend.js?v=2.3-formularios-1"></script>
+  <script defer src="app.js?v=2.3-formularios-1"></script>
   <script defer src="ratings.js?v=2.2"></script>
-  <script defer src="sponsors.js?v=2.3"></script>
-  <script defer src="account.js?v=2.3"></script>
+  <script defer src="sponsors.js?v=2.3-formularios-1"></script>
+  <script defer src="account.js?v=2.3-formularios-1"></script>
 </head>
 <body>
   <svg class="icon-sprite" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
@@ -241,17 +241,18 @@
           <div id="sponsor-list" class="admin-list"></div>
           <form id="sponsor-form" class="account-form sponsor-form" hidden>
             <h3 id="sponsor-form-title">Nuevo anuncio</h3>
-            <label for="ad-title">Patrocinador</label>
+            <label for="ad-title">Patrocinador <span class="field-meta required">Obligatorio</span></label>
             <input id="ad-title" name="titulo" maxlength="80" minlength="2" required>
-            <label for="ad-text">Texto del anuncio</label>
+            <label for="ad-text">Texto del anuncio <span class="field-meta">Opcional</span></label>
             <input id="ad-text" name="texto" maxlength="140">
             <div class="form-row">
-              <div><label for="ad-url">Enlace</label><input id="ad-url" name="enlace" type="url" maxlength="300" placeholder="https://"></div>
-              <div><label for="ad-order">Orden en el carrusel</label><input id="ad-order" name="orden" type="number" min="0" max="999" value="0" required></div>
+              <div><label for="ad-url">Enlace <span class="field-meta">Opcional</span></label><input id="ad-url" name="enlace" type="url" maxlength="300" placeholder="https://"></div>
+              <div><label for="ad-order">Orden en el carrusel <span class="field-meta required">Obligatorio</span></label><input id="ad-order" name="orden" type="number" min="0" max="999" value="0" required></div>
             </div>
-            <label for="ad-image">Imagen del anuncio</label>
+            <label for="ad-image">Imagen del anuncio <span class="field-meta">Opcional</span></label>
             <div id="ad-preview"></div>
-            <input id="ad-image" type="file" accept="image/jpeg,image/png,image/webp">
+            <input id="ad-image" type="file" accept="image/jpeg,image/png,image/webp" aria-describedby="ad-image-help">
+            <p id="ad-image-help" class="field-help">JPG, PNG o WebP de hasta 12 MB. Los PNG y WebP conservan su transparencia. La imagen optimizada debe pesar hasta 1,5 MB.</p>
             <button id="ad-remove-image" class="text-button" type="button" hidden>Quitar imagen</button>
             <label class="consent-check"><input name="activo" type="checkbox"> Mostrar en el carrusel</label>
             <div class="dialog-actions">
@@ -279,6 +280,27 @@
       <p>El mapa reúne a profesionales, estudios, talleres de producción, proveedores de equipos y espacios de trabajo vinculados al diseño en Misiones. La propuesta contempla a Misiones Diseña como gestor del directorio.</p>
       <p>MiDi es el Parque de Industrias Creativas de Misiones. Ofrece formación, coworking y laboratorios para producción creativa.</p>
       <a class="button primary" href="https://midi.ar/" target="_blank" rel="noopener noreferrer">Conocé MiDi <svg class="icon"><use href="#i-external"></use></svg></a>
+    </div>
+  </dialog>
+
+  <dialog id="email-dialog" class="modal" aria-labelledby="email-contact-title">
+    <div class="modal-inner">
+      <form method="dialog" class="modal-close">
+        <button class="icon-button" type="submit" aria-label="Cerrar opciones de correo"><svg class="icon"><use href="#i-close"></use></svg></button>
+      </form>
+      <h2 id="email-contact-title">Escribir por correo</h2>
+      <p>Elegí cómo querés escribirle a este emprendimiento.</p>
+      <div class="email-contact-address">
+        <input id="contact-email" type="text" readonly aria-label="Correo del emprendimiento">
+        <button type="button" class="button secondary" data-copy-email>Copiar correo</button>
+      </div>
+      <div class="email-contact-options">
+        <a id="contact-gmail" class="button primary" target="_blank" rel="noopener noreferrer">Abrir Gmail</a>
+        <a id="contact-outlook" class="button secondary" target="_blank" rel="noopener noreferrer">Abrir Outlook</a>
+        <a id="contact-mail-app" class="button secondary">Usar aplicación de correo</a>
+      </div>
+      <p>La opción de aplicación usa el programa de correo configurado en tu equipo. Si no se abre, podés usar Gmail, Outlook o copiar la dirección.</p>
+      <p id="contact-email-status" role="status"></p>
     </div>
   </dialog>
 
@@ -325,55 +347,58 @@
       <h2 id="editor-title">Mi ficha</h2>
       <div class="editor-status" id="editor-status"></div>
       <p id="review-note" class="revision-note" hidden></p>
-      <form id="draft-form" class="account-form" novalidate>
+      <p id="draft-required-help" class="field-help">Los campos marcados como obligatorios se necesitan para enviar la ficha a revisión. Podés guardar un borrador incompleto.</p>
+      <form id="draft-form" class="account-form" aria-describedby="draft-required-help" novalidate>
         <fieldset id="draft-fields">
-          <label for="draft-name">Nombre del emprendimiento</label>
-          <input id="draft-name" name="nombre" maxlength="70" autocomplete="organization" placeholder="Ej. Estudio del río">
+          <label for="draft-name">Nombre del emprendimiento <span class="field-meta required">Obligatorio</span></label>
+          <input id="draft-name" name="nombre" maxlength="70" autocomplete="organization" placeholder="Ej. Estudio del río" minlength="2" required>
           <div class="form-row">
-            <div><label for="draft-category">Rama o rubro</label><select id="draft-category" name="categoria"></select></div>
-            <div><label for="draft-town">Localidad</label><select id="draft-town" name="localidad"></select></div>
+            <div><label for="draft-category">Rama o rubro <span class="field-meta required">Obligatorio</span></label><select id="draft-category" name="categoria" required></select></div>
+            <div><label for="draft-town">Localidad <span class="field-meta required">Obligatorio</span></label><select id="draft-town" name="localidad" required></select></div>
           </div>
-          <label for="draft-services">Servicios que ofrecés</label>
-          <input id="draft-services" name="servicios" maxlength="160" placeholder="Ej. Diseño de mobiliario a medida">
+          <label for="draft-services"><span id="draft-services-label">Servicios que ofrecés</span> <span class="field-meta required">Obligatorio</span></label>
+          <input id="draft-services" name="servicios" maxlength="160" placeholder="Ej. Diseño de mobiliario a medida" minlength="5" required>
           <div id="production-fields" class="production-fields" hidden>
-            <label for="draft-processes">Procesos</label>
+            <label for="draft-processes">Procesos <span class="field-meta">Opcional</span></label>
             <input id="draft-processes" name="procesos" maxlength="160" placeholder="Ej. Corte CNC y ensamblado">
             <div class="form-row">
-              <div><label for="draft-materials">Materiales</label><input id="draft-materials" name="materiales" maxlength="160" placeholder="Ej. Madera y MDF"></div>
-              <div><label for="draft-scale">Escala de producción</label><input id="draft-scale" name="escala_produccion" maxlength="90" placeholder="Ej. Piezas únicas y series cortas"></div>
+              <div><label for="draft-materials">Materiales <span class="field-meta">Opcional</span></label><input id="draft-materials" name="materiales" maxlength="160" placeholder="Ej. Madera y MDF"></div>
+              <div><label for="draft-scale">Escala de producción <span class="field-meta">Opcional</span></label><input id="draft-scale" name="escala_produccion" maxlength="90" placeholder="Ej. Piezas únicas y series cortas"></div>
             </div>
           </div>
-          <label for="draft-description">Descripción</label>
-          <textarea id="draft-description" name="descripcion" maxlength="1200" rows="3" placeholder="Contá qué tipo de trabajos hacés y cómo te pueden consultar."></textarea>
+          <label for="draft-description">Descripción <span class="field-meta required">Obligatorio · mínimo 20 caracteres</span></label>
+          <textarea id="draft-description" name="descripcion" maxlength="1200" rows="3" placeholder="Contá qué tipo de trabajos hacés y cómo te pueden consultar." minlength="20" required></textarea>
 
           <section class="editor-section">
             <h3>Contacto público</h3>
-            <p class="field-help">Completá al menos un medio de contacto que quieras mostrar en el mapa.</p>
+            <p id="draft-contact-help" class="field-help">Es obligatorio completar al menos un medio de contacto. Los demás son opcionales y todos se muestran públicamente.</p>
             <div class="form-row">
-              <div><label for="draft-email">Correo comercial</label><input id="draft-email" name="correo_publico" type="email" maxlength="160"></div>
-              <div><label for="draft-phone">Teléfono</label><input id="draft-phone" name="telefono" type="tel" autocomplete="tel" maxlength="25" placeholder="+54 …"></div>
+              <div><label for="draft-email">Correo comercial <span class="field-meta">Opcional si indicás otro contacto</span></label><input id="draft-email" name="correo_publico" type="email" maxlength="160" aria-describedby="draft-contact-help"></div>
+              <div><label for="draft-phone">Teléfono <span class="field-meta">Opcional si indicás otro contacto</span></label><input id="draft-phone" name="telefono" type="tel" autocomplete="tel" maxlength="25" placeholder="+54 376 4123456" aria-describedby="draft-contact-help draft-phone-help"></div>
             </div>
             <div class="form-row">
-              <div><label for="draft-whatsapp">WhatsApp</label><input id="draft-whatsapp" name="whatsapp" type="tel" maxlength="25" placeholder="+54 9 …"></div>
-              <div><label for="draft-web">Sitio web o portfolio</label><input id="draft-web" name="web" type="url" maxlength="300" placeholder="https://"></div>
+              <div><label for="draft-whatsapp">WhatsApp <span class="field-meta">Opcional si indicás otro contacto</span></label><input id="draft-whatsapp" name="whatsapp" type="tel" maxlength="25" placeholder="+54 9 376 4123456" aria-describedby="draft-contact-help draft-phone-help"></div>
+              <div><label for="draft-web">Sitio web o portfolio <span class="field-meta">Opcional si indicás otro contacto</span></label><input id="draft-web" name="web" type="url" maxlength="300" placeholder="https://" aria-describedby="draft-contact-help draft-links-help"></div>
             </div>
-            <label for="draft-social">Red social u otro enlace</label>
-            <input id="draft-social" name="red_social" type="url" maxlength="300" placeholder="https://instagram.com/tu.usuario">
+            <p id="draft-phone-help" class="field-help">Teléfono y WhatsApp: entre 8 y 15 dígitos, con código de país y de área. Podés usar espacios, guiones y paréntesis.</p>
+            <label for="draft-social">Red social u otro enlace <span class="field-meta">Opcional si indicás otro contacto</span></label>
+            <input id="draft-social" name="red_social" type="url" maxlength="300" placeholder="https://instagram.com/tu.usuario" aria-describedby="draft-contact-help draft-links-help">
+            <p id="draft-links-help" class="field-help">Pegá el enlace completo, empezando con https://.</p>
           </section>
 
           <details class="location-details">
             <summary>Ubicación comercial exacta (opcional)</summary>
             <p class="field-help">Con la localidad alcanza para ubicar la ficha. Si querés señalar un espacio comercial, podés indicar dirección y coordenadas.</p>
-            <label for="draft-address">Dirección comercial</label>
+            <label for="draft-address">Dirección comercial <span class="field-meta">Opcional</span></label>
             <input id="draft-address" name="direccion" maxlength="150" autocomplete="street-address">
             <div class="form-row">
-              <div><label for="draft-lat">Latitud</label><input id="draft-lat" name="latitud" type="number" step="any" min="-28.4" max="-25.3" placeholder="-27.37"></div>
-              <div><label for="draft-lon">Longitud</label><input id="draft-lon" name="longitud" type="number" step="any" min="-56.3" max="-53.3" placeholder="-55.90"></div>
+              <div><label for="draft-lat">Latitud <span class="field-meta">Opcional · completá ambas coordenadas</span></label><input id="draft-lat" name="latitud" type="number" step="any" min="-28.4" max="-25.3" placeholder="-27.37"></div>
+              <div><label for="draft-lon">Longitud <span class="field-meta">Opcional · completá ambas coordenadas</span></label><input id="draft-lon" name="longitud" type="number" step="any" min="-56.3" max="-53.3" placeholder="-55.90"></div>
             </div>
           </details>
 
           <section class="editor-section photo-section" aria-labelledby="photo-title">
-            <h3 id="photo-title">Foto de portada</h3>
+            <h3 id="photo-title">Foto de portada · opcional</h3>
             <div id="owner-photo-slot"></div>
             <label for="draft-photo" class="sr-only">Subir foto de portada</label>
             <input id="draft-photo" type="file" accept="image/jpeg,image/png,image/webp" aria-describedby="photo-help">
@@ -381,8 +406,8 @@
             <button class="text-button" type="button" id="remove-photo" data-account="remove-photo" hidden>Quitar foto del borrador</button>
           </section>
 
-          <label class="consent-check"><input id="draft-consent" name="acepta_publicar" type="checkbox">
-            <span>Quiero que los datos y la foto de esta ficha se vean en el mapa una vez aprobados.</span>
+          <label class="consent-check"><input id="draft-consent" name="acepta_publicar" type="checkbox" required>
+            <span>Quiero que los datos y la foto de esta ficha se vean en el mapa una vez aprobados. <span class="field-meta required">Obligatorio para enviar a revisión</span></span>
           </label>
         </fieldset>
         <p id="editor-message" class="inline-feedback" role="status" hidden></p>

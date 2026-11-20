@@ -188,32 +188,53 @@ async function showAccess(intent = "account", clearCode = true) {
 }
 
 function isInputValid(model, sending) {
-  if ([model.web, model.red_social].some((url) => url && !isPublicLink(url))) throw Error("Ingresá enlaces HTTPS válidos.");
-  if (model.correo_publico && !safeMailto(model.correo_publico)) throw Error("Revisá el correo comercial.");
-  if ([model.telefono, model.whatsapp].some((number) => number && !publicPhone(number))) {
-    throw Error("Ingresá el teléfono y el WhatsApp con código de país y de área.");
+  for (const field of ownerFields) editorForm.elements.namedItem(field).removeAttribute("aria-invalid");
+  const invalid = (field, message) => {
+    const input = editorForm.elements.namedItem(field);
+    input.setAttribute("aria-invalid", "true");
+    input.focus();
+    throw Error(message);
+  };
+  const limits = { nombre: 70, servicios: 160, descripcion: 1200, web: 300, red_social: 300,
+    correo_publico: 160, procesos: 160, materiales: 160, escala_produccion: 90, direccion: 150 };
+  for (const [field, limit] of Object.entries(limits)) {
+    if (model[field].length > limit) invalid(field, "El campo supera el máximo de " + limit + " caracteres.");
+  }
+  if (model.categoria && !Object.hasOwn(categories, model.categoria)) invalid("categoria", "Elegí un rubro de la lista.");
+  if (model.localidad && !Object.hasOwn(towns, model.localidad)) invalid("localidad", "Elegí una localidad de la lista.");
+  for (const field of ["web", "red_social"]) {
+    if (model[field] && !isPublicLink(model[field])) invalid(field, "Ingresá un enlace completo y válido que empiece con https://, sin credenciales ni espacios.");
+  }
+  if (model.correo_publico && !safeMailto(model.correo_publico)) invalid("correo_publico", "Ingresá un correo comercial válido, como contacto@ejemplo.com.");
+  for (const field of ["telefono", "whatsapp"]) {
+    if (model[field] && !publicPhone(model[field])) invalid(field, "Ingresá un número de 8 a 15 dígitos con código de país y de área, por ejemplo +54 9 376 4123456.");
   }
   if (model.latitud !== null || model.longitud !== null) {
     if (!Number.isFinite(model.latitud) || !Number.isFinite(model.longitud)
       || model.latitud < -28.4 || model.latitud > -25.3 || model.longitud < -56.3 || model.longitud > -53.3) {
-      throw Error("Ingresá las dos coordenadas dentro de la zona de Misiones.");
+      invalid("latitud", "Ingresá las dos coordenadas dentro de la zona de Misiones.");
     }
   }
   if (!sending) return;
-  if (model.nombre.length < 2 || !model.categoria || !model.localidad
-    || model.servicios.length < 5 || model.descripcion.length < 20) {
-    throw Error("Completá nombre, rubro, localidad, servicios y una descripción de al menos 20 caracteres.");
-  }
+  if (model.nombre.length < 2) invalid("nombre", "El nombre es obligatorio y debe tener al menos 2 caracteres.");
+  if (!model.categoria) invalid("categoria", "Elegí la rama o rubro de tu ficha.");
+  if (!model.localidad) invalid("localidad", "Elegí la localidad de tu ficha.");
+  if (model.servicios.length < 5) invalid("servicios", "Describí tus servicios o qué fabricás con al menos 5 caracteres.");
+  if (model.descripcion.length < 20) invalid("descripcion", "La descripción es obligatoria y debe tener al menos 20 caracteres.");
   if (![model.web, model.red_social, model.telefono, model.whatsapp, model.correo_publico].some(Boolean)) {
-    throw Error("Agregá un medio de contacto público.");
+    invalid("correo_publico", "Agregá al menos un contacto: correo, teléfono, WhatsApp, sitio web o red social.");
   }
-  if (!model.acepta_publicar) throw Error("Confirmá que querés publicar los datos de la ficha.");
+  if (!model.acepta_publicar) {
+    byId("draft-consent").focus();
+    throw Error("La autorización para publicar es obligatoria para enviar la ficha a revisión.");
+  }
 }
 
 function ownerModel() {
   const model = {};
   for (const field of ownerFields) model[field] = editorForm.elements.namedItem(field).value.trim();
-  for (const field of ["telefono", "whatsapp"]) model[field] = model[field].replace(/[+()\s-]/g, "");
+  for (const field of ["telefono", "whatsapp"]) model[field] = normalizePhone(model[field]);
+  model.correo_publico = model.correo_publico.replace(/^mailto:/i, "");
   if (categories[model.categoria]?.group !== "produccion") {
     model.procesos = model.materiales = model.escala_produccion = "";
   }
@@ -258,7 +279,7 @@ function editorStatus() {
 function updateProductionFields() {
   const production = categories[byId("draft-category").value]?.group === "produccion";
   byId("production-fields").hidden = !production;
-  select('label[for="draft-services"]', editorForm).textContent = production ? "Qué fabricás" : "Servicios que ofrecés";
+  byId("draft-services-label").textContent = production ? "Qué fabricás" : "Servicios que ofrecés";
   byId("draft-services").placeholder = production ? "Ej. Exhibidores y mobiliario comercial" : "Ej. Diseño de mobiliario a medida";
 }
 
@@ -306,7 +327,7 @@ async function showEditor() {
   }, "No se pudo cargar tu ficha. Volvé a abrirla.");
 }
 
-async function convertirFoto(file) {
+async function convertirFoto(file, preserveTransparency = false) {
   if (file.size > 12_000_000 || !["image/jpeg", "image/png", "image/webp"].includes(file.type)) {
     throw Error("Elegí una foto JPG, PNG o WebP de hasta 12 MB.");
   }
@@ -321,13 +342,17 @@ async function convertirFoto(file) {
     const canvas = document.createElement("canvas");
     canvas.width = Math.max(1, Math.round(original.width * scale));
     canvas.height = Math.max(1, Math.round(original.height * scale));
-    const context = canvas.getContext("2d", { alpha: false });
-    context.fillStyle = "#fff";
-    context.fillRect(0, 0, canvas.width, canvas.height);
+    const transparent = preserveTransparency && file.type !== "image/jpeg";
+    const context = canvas.getContext("2d", { alpha: transparent });
+    if (!context) throw Error("No se pudo preparar la imagen.");
+    if (!transparent) {
+      context.fillStyle = "#fff";
+      context.fillRect(0, 0, canvas.width, canvas.height);
+    }
     context.drawImage(original, 0, 0, canvas.width, canvas.height);
-    const jpeg = await new Promise((resolve) => canvas.toBlob(resolve, "image/jpeg", .83));
-    if (!jpeg || jpeg.size > 1_500_000) throw Error("Elegí una foto más liviana.");
-    return jpeg;
+    const result = await new Promise((resolve) => canvas.toBlob(resolve, transparent ? "image/png" : "image/jpeg", .83));
+    if (!result || result.size > 1_500_000) throw Error("Elegí una imagen más liviana: una vez optimizada debe pesar hasta 1,5 MB.");
+    return result;
   } finally {
     original.close();
   }
@@ -563,13 +588,20 @@ editorForm.addEventListener("submit", (event) => {
   event.preventDefault();
   const sending = event.submitter?.value === "submit";
   const model = ownerModel();
-  void runAction(editorDialog, "editor-message", async () => {
+  try {
     isInputValid(model, sending);
+  } catch (error) {
+    feedback("editor-message", readableError(error, "Revisá los campos indicados."), true);
+    return;
+  }
+  void runAction(editorDialog, "editor-message", async () => {
     ownerDraft = await backend.save(ownerDraft?.version ?? 0, model);
     if (sending) ownerDraft = await backend.submit(ownerDraft);
     feedback("editor-message", sending ? "La ficha se envió a revisión." : "Borrador guardado.");
   }, "No se pudo guardar tu ficha.");
 });
+
+editorForm.addEventListener("input", (event) => event.target.removeAttribute("aria-invalid"));
 
 byId("draft-photo").addEventListener("change", (event) => {
   const file = event.target.files?.[0];

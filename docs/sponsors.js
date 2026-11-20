@@ -11,7 +11,7 @@ let sponsorTimer;
 
 function sponsorImage(value) {
   if (!value) return "";
-  if (/^data:image\/jpeg;base64,[A-Za-z0-9+/=]+$/.test(value)) return value;
+  if (/^data:image\/(?:jpeg|png);base64,[A-Za-z0-9+/=]+$/.test(value)) return value;
   if (/^assets\/photos\/(graphic|gear)\.webp$/.test(value)) return value;
   return safeWebUrl(value);
 }
@@ -180,7 +180,7 @@ byId("ad-image").addEventListener("change", (event) => {
   event.target.value = "";
   if (!file) return;
   void sponsorAdminAction(async () => {
-    sponsorPhoto = await backend.upload(await convertirFoto(file), "patrocinio");
+    sponsorPhoto = await backend.upload(await convertirFoto(file, true), "patrocinio");
     await paintSponsorPhoto();
     feedback("review-message", "Guardá el anuncio para conservar la imagen.");
   }, "No se pudo subir la imagen del anuncio.");

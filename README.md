@@ -18,7 +18,15 @@ Abrí http://localhost:8000. La demostración usa fichas y anuncios de ejemplo y
 
 ## Actualizar desde una versión anterior
 
-Actualizá la carpeta `docs/` del repositorio y conservá tus valores de `docs/config.js` si ya configuraste Supabase. Desde **v2.2**, esta actualización no requiere cambios en la base de datos.
+Actualizá los archivos indicados en [ACTUALIZAR.md](ACTUALIZAR.md) y conservá tus valores de `docs/config.js` si ya configuraste Supabase. Esta revisión de **v2.3** agrega Impresión 3D, campos obligatorios y opcionales, opciones para escribir por correo, validación de contactos y PNG transparentes en publicidad. Requiere ejecutar [20261119160000_contactos_png_impresion3d.sql](supabase/migrations/20261119160000_contactos_png_impresion3d.sql) y volver a desplegar `subir-foto` antes de actualizar el frontend.
+
+La corrección del ingreso por correo de **v2.3** permite códigos de 6 a 10 dígitos, incluidos los de 8. Si ya instalaste v2.3, alcanza con actualizar `docs/index.html`. El código del autenticador de Gestión sigue siendo de 6 dígitos.
+
+La corrección de fotos en la ficha limita la imagen al espacio de portada para que las fotos verticales no tapen la información ni los enlaces. Para aplicar solo esta corrección, actualizá `docs/styles.css`; conservá tu `docs/config.js` actual.
+
+La mejora del mapa agrega calles y nombres con OpenStreetMap, zoom con la rueda del mouse alrededor del puntero y acercamiento hasta nivel 19. En pantallas táctiles, el zoom se controla con dos dedos o con los botones. Al elegir una localidad o usar **Ver en el mapa**, la vista se acerca a la zona. Las ubicaciones de las fichas siguen siendo aproximadas por localidad. Para instalar esta mejora, actualizá `docs/index.html`, `docs/app.js` y `docs/styles.css`; conservá tu `docs/config.js` actual.
+
+Las calles se cargan con conexión a Internet y mantienen visibles los créditos de OpenStreetMap. Si una parte no carga, queda el mapa general de respaldo y se muestra un aviso. Se solicitan únicamente las imágenes necesarias para la vista actual, con la caché normal del navegador y sin descarga de zonas para uso sin conexión. [Política del servicio de mapas](https://operations.osmfoundation.org/policies/tiles/).
 
 - Desde **v2.1 con Supabase**, ejecutá [20261119090000_gestion_y_calificaciones.sql](supabase/migrations/20261119090000_gestion_y_calificaciones.sql). Conserva las fichas y las calificaciones existentes.
 - Desde **v2.0 con Supabase**, ejecutá primero [20261118104500_perfiles_resenas_patrocinios.sql](supabase/migrations/20261118104500_perfiles_resenas_patrocinios.sql), después la migración de v2.2 y volvé a desplegar `subir-foto`.
@@ -26,7 +34,7 @@ Actualizá la carpeta `docs/` del repositorio y conservá tus valores de `docs/c
 
 ## Activar el backend de Supabase
 
-1. **Creá un proyecto de Supabase para el mapa.** En **SQL Editor**, ejecutá primero [20261118090000_mapa_creativo.sql](supabase/migrations/20261118090000_mapa_creativo.sql) después [20261118104500_perfiles_resenas_patrocinios.sql](supabase/migrations/20261118104500_perfiles_resenas_patrocinios.sql) y finalmente [20261119090000_gestion_y_calificaciones.sql](supabase/migrations/20261119090000_gestion_y_calificaciones.sql). El directorio conectado suma fichas a medida que se aprueban y anuncios a medida que se activan.
+1. **Creá un proyecto de Supabase para el mapa.** En **SQL Editor**, ejecutá en este orden [20261118090000_mapa_creativo.sql](supabase/migrations/20261118090000_mapa_creativo.sql), [20261118104500_perfiles_resenas_patrocinios.sql](supabase/migrations/20261118104500_perfiles_resenas_patrocinios.sql), [20261119090000_gestion_y_calificaciones.sql](supabase/migrations/20261119090000_gestion_y_calificaciones.sql) y [20261119160000_contactos_png_impresion3d.sql](supabase/migrations/20261119160000_contactos_png_impresion3d.sql). El directorio conectado suma fichas a medida que se aprueban y anuncios a medida que se activan.
 2. **Configurá el ingreso por código.** En Authentication, activá el proveedor Email y configurá un SMTP para el envío a cuentas del público. En la plantilla **Magic Link** usá un código de un solo uso como el ejemplo de abajo. Si el alta inicial usa **Confirm signup**, usá el mismo contenido en esa plantilla. En **URL Configuration**, poné como Site URL la dirección definitiva de GitHub Pages. [Ingreso por código](https://supabase.com/docs/guides/auth/auth-email-passwordless#with-otp) · [Correo SMTP](https://supabase.com/docs/guides/auth/auth-smtp).
 
    ~~~html
@@ -64,7 +72,7 @@ Actualizá la carpeta `docs/` del repositorio y conservá tus valores de `docs/c
 - **Revisión.** Registra la acción y actualiza la ficha pública en la misma transacción de base de datos. Las versiones permiten detectar que una ficha cambió mientras alguien la revisaba.
 - **Calificaciones.** Cada cliente ingresa con un correo verificado, declara que contrató el servicio y puede puntuar una vez por ficha. La contratación es una declaración del cliente. El sistema comprueba la cuenta, la confirmación, la existencia de la ficha publicada y la unicidad del puntaje. Los enlaces de invitación anteriores siguen abriendo la ficha para calificar. El mapa muestra los totales y promedios de las fichas publicadas.
 - **Publicidad.** El carrusel muestra los anuncios activos en el orden indicado. El equipo administrador controla el contenido, la imagen, el enlace y el estado de cada anuncio.
-- **Imágenes.** Los archivos se guardan en buckets privados y se ven con enlaces temporales. La función valida sesión, permisos, tamaño y dimensiones del JPEG. Las imágenes que quedan sin referencia se pueden purgar desde Storage. [Archivos privados](https://supabase.com/docs/guides/storage/serving/downloads).
+- **Imágenes.** Los archivos se guardan en buckets privados y se ven con enlaces temporales. La función valida sesión, permisos, formato, tamaño y dimensiones. Las fotos se optimizan como JPEG; la publicidad acepta también PNG y conserva su transparencia. Para PNG se comprueban estructura, CRC y descompresión limitada. Las imágenes que quedan sin referencia se pueden purgar desde Storage. [Archivos privados](https://supabase.com/docs/guides/storage/serving/downloads).
 - **Respaldo.** Copiá PostgreSQL y guardá una copia de los objetos de Storage. [Backups de Supabase](https://supabase.com/docs/guides/platform/backups).
 
-Cartografía de Natural Earth y localidades del servicio [Georef de la Argentina](https://www.argentina.gob.ar/georef). Las licencias de Leaflet, Supabase JS y las tipografías están junto a los recursos. Los créditos de las fotos de ejemplo están en `docs/assets/photos/credits.txt`.
+Calles de [OpenStreetMap y sus colaboradores](https://www.openstreetmap.org/copyright), cartografía general de respaldo de Natural Earth y localidades del servicio [Georef de la Argentina](https://www.argentina.gob.ar/georef). Las licencias de Leaflet, Supabase JS y las tipografías están junto a los recursos. Los créditos de las fotos de ejemplo están en `docs/assets/photos/credits.txt`.

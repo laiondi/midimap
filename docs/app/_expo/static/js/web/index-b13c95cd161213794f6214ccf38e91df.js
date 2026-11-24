@@ -1,0 +1,1 @@
+__d(function(g,r,i,a,m,e,d){"use strict";Object.defineProperty(e,'__esModule',{value:!0}),Object.defineProperty(e,"default",{enumerable:!0,get:function(){return c}});var n=r(d[0]),t=r(d[1]),s=r(d[2]),u=r(d[3]);function c(){const{ready:c,session:o}=(0,s.useSession)();return c?(0,u.jsx)(n.Redirect,{href:o?'/descubrir':'/acceso'}):(0,u.jsx)(t.Loading,{})}},767,[769,770,771,6]);

@@ -1,0 +1,33 @@
+{
+  "expo": {
+    "name": "MiDi Conecta",
+    "slug": "midi-conecta",
+    "version": "1.0.0",
+    "orientation": "portrait",
+    "icon": "./assets/midi-icon.png",
+    "userInterfaceStyle": "light",
+    "ios": {
+      "supportsTablet": false,
+      "bundleIdentifier": "ar.midi.conecta",
+      "config": {
+        "usesNonExemptEncryption": false
+      }
+    },
+    "android": {
+      "package": "ar.midi.conecta",
+      "adaptiveIcon": {
+        "foregroundImage": "./assets/midi-icon.png",
+        "backgroundColor": "#ffffff"
+      }
+    },
+    "plugins": [
+      "expo-secure-store",
+      "expo-router"
+    ],
+    "scheme": "midiconecta",
+    "platforms": [
+      "android",
+      "ios"
+    ]
+  }
+}

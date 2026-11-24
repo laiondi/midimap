@@ -9,7 +9,7 @@ const editorDialog = byId("editor-dialog");
 const managementPanel = byId("management-panel");
 const editorForm = byId("draft-form");
 const ownerFields = [
-  "nombre", "categoria", "localidad", "servicios", "descripcion", "web", "correo_publico",
+  "tipo_perfil", "nombre", "categoria", "localidad", "servicios", "descripcion", "web", "correo_publico",
   "whatsapp", "telefono", "red_social", "procesos", "materiales", "escala_produccion",
   "direccion", "latitud", "longitud",
 ];
@@ -116,6 +116,7 @@ function paintAccountNav() {
   byId("notifications-button").hidden = !canManage;
   for (const button of selectAll('.header-nav [data-section]:not([data-section="management"])')) button.hidden = canManage;
   byId("management-nav").hidden = !canManage;
+  byId("opportunities-nav").hidden = canManage || !communityContext?.ficha;
   byId("review-button").hidden = !canManage;
 }
 
@@ -141,6 +142,7 @@ async function refreshSession() {
     byId("sponsor-list").replaceChildren();
     clearSponsorEditor();
     clearManifestoEditor();
+    clearCommunity();
     configureNotifications(false);
     adminView = "solicitudes";
     accessCodeEmail = "";
@@ -150,7 +152,9 @@ async function refreshSession() {
   sessionUser = account;
   canManage = Boolean(account && context?.es_administrador);
   paintAccountNav();
+  if (account && !canManage) void refreshCommunity();
   configureNotifications(Boolean(context?.puede_moderar));
+  if (!sessionUser && state.section === "opportunities") setSection("explore");
   if (!canManage && state.section === "management") setSection("explore");
   if (canManage && (!wasAdmin || previousUser !== account?.id)) void showReview();
 }
@@ -171,7 +175,7 @@ async function showAccess(intent = "account", clearCode = true) {
   byId("signed-in-access").hidden = !sessionUser;
   byId("send-code-form").hidden = !backend || demo || Boolean(sessionUser) || Boolean(accessCodeEmail);
   byId("verify-code-form").hidden = !accessCodeEmail || Boolean(sessionUser) || demo;
-  const titles = { profile: "Sumá tu perfil", rating: "Ingresá para calificar", review: "Ingresá para gestionar", account: "Ingresá" };
+  const titles = { opportunities: "Ingresá a Oportunidades", profile: "Sumá tu perfil", rating: "Ingresá para calificar", review: "Ingresá para gestionar", account: "Ingresá" };
   byId("account-title").textContent = sessionUser ? "Tu cuenta" : titles[intent];
   if (!backend) {
     byId("account-help").textContent = "La conexión con Supabase todavía requiere configuración.";
@@ -295,7 +299,7 @@ function updateProductionFields() {
 
 function fillOwnerForm() {
   editorForm.reset();
-  for (const field of ownerFields) editorForm.elements.namedItem(field).value = ownerDraft?.[field] ?? "";
+  for (const field of ownerFields) editorForm.elements.namedItem(field).value = ownerDraft?.[field] ?? (field === "tipo_perfil" ? "profesional" : "");
   byId("draft-consent").checked = Boolean(ownerDraft?.acepta_publicar);
   select(".location-details", editorForm).open = Boolean(ownerDraft?.direccion || ownerDraft?.latitud);
   updateProductionFields();
@@ -404,7 +408,7 @@ async function renderQueue() {
     const title = document.createElement("strong");
     title.textContent = entry.nombre || "Ficha sin nombre";
     const location = document.createElement("span");
-    location.textContent = [statusNames[entry.estado], categories[entry.categoria]?.label, towns[entry.localidad]?.label].filter(Boolean).join(" · ");
+    location.textContent = [statusNames[entry.estado], communityLabels[entry.tipo_perfil] || "Profesional independiente", categories[entry.categoria]?.label, towns[entry.localidad]?.label].filter(Boolean).join(" · ");
     button.append(title, location);
     const requestLabel = document.createElement("span");
     requestLabel.className = "request-read-label";
@@ -423,7 +427,7 @@ async function renderQueue() {
 }
 
 async function renderAdmin(view) {
-  if (!["fichas", "solicitudes", "publicidad", "manifesto"].includes(view)) return;
+  if (!["fichas", "solicitudes", "publicidad", "manifesto", "oportunidades", "app"].includes(view)) return;
   adminView = view;
   byId("review-verification").hidden = true;
   clearMfa();
@@ -431,13 +435,17 @@ async function renderAdmin(view) {
   byId("admin-fichas").hidden = !["fichas", "solicitudes"].includes(view);
   byId("admin-publicidad").hidden = view !== "publicidad";
   byId("admin-manifesto").hidden = view !== "manifesto";
+  byId("admin-oportunidades").hidden = view !== "oportunidades";
+  byId("admin-app").hidden = view !== "app";
   byId("review-filter-control").hidden = view === "solicitudes";
   byId("review-filter").value = view === "solicitudes" ? "en_revision" : "";
-  for (const name of ["fichas", "solicitudes", "publicidad", "manifesto"]) {
+  for (const name of ["fichas", "solicitudes", "publicidad", "manifesto", "oportunidades", "app"]) {
     select('[data-admin-view="' + name + '"]', managementPanel).setAttribute("aria-pressed", name === view);
   }
   await refreshAdminNotifications(false);
-  if (view === "publicidad") {
+  if (view === "oportunidades") { await renderOpportunityAdmin(); }
+  else if (view === "app") { await loadAppAdmin(); }
+  else if (view === "publicidad") {
     clearSponsorEditor();
     await loadSponsorAdmin();
   } else if (view === "manifesto") await loadManifestoEditor();
@@ -600,6 +608,7 @@ byId("verify-code-form").addEventListener("submit", (event) => {
 
 function continueAccess() {
   if (canManage) return showReview();
+  if (accessIntent === "opportunities") { accessDialog.close(); return showOpportunities(); }
   if (accessIntent === "profile") return showEditor();
   if (accessIntent === "rating") return resumeRating();
   if (accessIntent === "review") return showReview();
@@ -621,6 +630,7 @@ editorForm.addEventListener("submit", (event) => {
   void runAction(editorDialog, "editor-message", async () => {
     ownerDraft = await backend.save(ownerDraft?.version ?? 0, model);
     if (sending) ownerDraft = await backend.submit(ownerDraft);
+    void refreshCommunity();
     feedback("editor-message", sending ? "La ficha se envió a revisión." : "Borrador guardado.");
   }, "No se pudo guardar tu ficha.");
 });

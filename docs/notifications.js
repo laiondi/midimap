@@ -12,6 +12,8 @@ function requestKey(row) { return row.ficha + ":" + row.version; }
 function paintRequestNotifications() {
   const unread = adminNotifications.filter((row) => !row.leida).length;
   const pending = adminNotifications.length;
+  const profilePending = adminNotifications.filter(row => row.tipo !== "oportunidad").length;
+  const opportunityPending = pending - profilePending;
   for (const id of ["management-unread", "notifications-unread"]) {
     const badge = byId(id);
     badge.textContent = unread > 99 ? "99+" : String(unread);
@@ -19,11 +21,20 @@ function paintRequestNotifications() {
   }
   byId("management-nav").setAttribute("aria-label", unread ? `Gestión, ${unread} ${unread === 1 ? "solicitud" : "solicitudes"} sin leer` : "Gestión");
   byId("notifications-button").setAttribute("aria-label", unread ? `Solicitudes: ${unread} sin leer` : "Ver solicitudes");
-  byId("requests-count").textContent = String(pending);
-  byId("requests-count").hidden = !pending;
+  byId("requests-count").textContent = String(profilePending);
+  byId("requests-count").hidden = !profilePending;
+  byId("opportunity-requests-count").textContent = String(opportunityPending);
+  byId("opportunity-requests-count").hidden = !opportunityPending;
   const summary = byId("notifications-summary");
   const text = pending ? `${pending} ${pending === 1 ? "solicitud pendiente" : "solicitudes pendientes"} · ${unread} sin leer.` : "No hay solicitudes pendientes.";
   if (summary.textContent !== text) summary.textContent = text;
+  for (const card of selectAll("[data-opportunity-card]")) {
+    const row = adminNotifications.find(row => row.tipo === "oportunidad" && row.ficha === card.dataset.opportunityCard);
+    const unread = Boolean(row && !row.leida);
+    card.classList.toggle("is-unread", unread);
+    const label = card.querySelector(".opportunity-state");
+    if (label) label.textContent = label.dataset.baseStatus + (unread ? " · Sin leer" : "");
+  }
   const index = new Map(adminNotifications.map((row) => [row.ficha, row]));
   for (const button of selectAll("[data-review]", managementPanel)) {
     const row = index.get(button.dataset.review);
@@ -105,13 +116,14 @@ async function markRequestRead(entry) {
 
 byId("notifications-button").addEventListener("click", () => {
   if (!canManage) return;
-  adminView = "solicitudes";
+  adminView = adminNotifications.some(row => row.tipo === "oportunidad" && !row.leida) ? "oportunidades" : "solicitudes";
   void showReview();
 });
 byId("notifications-refresh").addEventListener("click", () => {
   void runAction(managementPanel, "review-message", async () => {
     await refreshAdminNotifications(true);
     if (adminView === "solicitudes" && !reviewSelection) await renderQueue();
+    if (adminView === "oportunidades") await renderOpportunityAdmin();
   }, "No se pudieron actualizar las solicitudes.");
 });
 document.addEventListener("visibilitychange", () => {

@@ -1,13 +1,13 @@
 "use strict";
 
 const fichaFields = [
-  "id", "titular", "version", "estado", "nombre", "categoria", "localidad", "servicios", "descripcion",
+  "id", "titular", "version", "estado", "tipo_perfil", "nombre", "categoria", "localidad", "servicios", "descripcion",
   "web", "correo_publico", "whatsapp", "direccion", "latitud", "longitud", "foto_ruta",
   "telefono", "red_social", "procesos", "materiales", "escala_produccion",
   "acepta_publicar", "nota_revision", "actualizada",
 ].join(",");
 const publicFields = [
-  "id", "nombre", "categoria", "localidad", "servicios", "descripcion", "web",
+  "id", "tipo_perfil", "nombre", "categoria", "localidad", "servicios", "descripcion", "web",
   "correo_publico", "whatsapp", "direccion", "latitud", "longitud", "foto_ruta",
   "telefono", "red_social", "procesos", "materiales", "escala_produccion",
 ].join(",");
@@ -42,6 +42,7 @@ function enlazarFicha(row, photoUrl = "", rating = null) {
   return {
     id: row.id,
     name: row.nombre,
+    profileType: row.tipo_perfil || "profesional",
     town: row.localidad,
     category: row.categoria,
     services: row.servicios,
@@ -142,7 +143,26 @@ function backendSupabase() {
     context: () => rpc("contexto_de_cuenta"),
     manifesto: async () => dato(await client.from("manifiesto").select("id,version,titulo,bajada,contenido,cierre,actualizado").eq("id", true).single()),
     saveManifesto: (version, model) => mutate("guardar_manifiesto", { p_version: version, p_datos: model }),
-    notifications: () => allRows(() => client.rpc("notificaciones_de_gestion")),
+    notifications: async () => (await Promise.all([
+      allRows(() => client.rpc("notificaciones_de_gestion")),
+      allRows(() => client.rpc("notificaciones_oportunidades")),
+    ])).flat(),
+    community: () => rpc("contexto_comunidad"),
+    opportunities: (view = "board") => allRows(() => {
+      const q = client.from("oportunidades").select("*").neq("estado", "eliminada").order("actualizada", {ascending: false}).order("id");
+      if (view === "board") return q.eq("estado", "publicada").gte("fecha_cierre", new Date().toLocaleDateString("en-CA"));
+      return q;
+    }),
+    saveOpportunity: (id, version, model) => mutate("guardar_oportunidad", {p_id: id, p_version: version, p_datos: model}),
+    actOpportunity: (row, action, note = null) => mutate("accion_oportunidad", {p_id: row.id, p_version: row.version, p_accion: action, p_nota: note}),
+    applyOpportunity: (id, message) => mutate("postular_oportunidad", {p_id: id, p_mensaje: message}),
+    applications: () => allRows(() => client.from("postulaciones").select("*").order("actualizada", {ascending: false}).order("id")),
+    actApplication: (row, status) => mutate("accion_postulacion", {p_id: row.id, p_version: row.version, p_estado: status}),
+    markOpportunityRead: (id, version) => rpc("leer_oportunidad", {p_id: id, p_version: version}),
+    appDownloads: async () => dato(await client.from("descargas_app").select("*").eq("id",true).single()),
+    saveDownloads: (android, ios) => mutate("guardar_descargas_app", {p_android: android, p_ios: ios}),
+    appReports: () => allRows(() => client.from("matching_reportes").select("*").eq("revisado",false).order("creada").order("id")),
+    reviewReport: (id) => rpc("revisar_reporte", {p_id:id}),
     markRequestRead: (id, version) => rpc("marcar_solicitud_leida", { p_ficha: id, p_version: version }),
     sendCode: async (email) => dato(await client.auth.signInWithOtp({ email })),
     checkCode: async (email, token) => dato(await client.auth.verifyOtp({ email, token, type: "email" })),
@@ -189,6 +209,7 @@ function backendDemo() {
   const accounts = {
     titular: { id: "titular-de-prueba", email: "Titular de prueba" },
     admin: { id: "administracion-de-prueba", email: "Administrador de prueba" },
+    organizacion: { id: "organizacion-de-prueba", email: "Organización de prueba" },
     cliente: { id: "cliente-de-prueba", email: "cliente@ejemplo.test" },
   };
   const sampleAds = [
@@ -229,6 +250,8 @@ function backendDemo() {
       sponsors: data?.sponsors || Object.fromEntries(sampleAds.map((row) => [row.id, { ...row }])),
       manifesto: data?.manifesto || structuredClone(initialManifesto),
       notificationReads: data?.notificationReads || {},
+      opportunities: data?.opportunities || {}, applications: data?.applications || {},
+      downloads: data?.downloads || {android_url: "", ios_url: ""}, opportunityReads: data?.opportunityReads || {},
     };
   }
   function write(state) {
@@ -278,11 +301,90 @@ function backendDemo() {
       cantidad: scores.length,
     } : null;
   }
+  function ensureDemoOrganization(role) {
+    if (role !== "organizacion") return;
+    const s=read(), id=accounts.organizacion.id;
+    if (s.drafts[id]) return;
+    const row={id,titular:id,tipo_perfil:"estudio",version:1,estado:"publicada",nombre:"Estudio MiDi de prueba",categoria:"industrial",localidad:"posadas",servicios:"Diseño y producción",descripcion:"Estudio de ejemplo para probar oportunidades y postulaciones.",correo_publico:"estudio@example.org",acepta_publicar:true,actualizada:new Date().toISOString()};
+    s.drafts[id]=row; s.published[id]={...row}; write(s);
+  }
+  function demoCommunity() {
+    const account=current(), s=read();
+    const ficha=account && session!=="admin" ? Object.values(s.published).find(r=>r.titular===account.id) : null;
+    return {ficha:ficha || null,puede_publicar:!!ficha && ["empresa","estudio","taller","espacio"].includes(ficha.tipo_perfil),matching_activo:false};
+  }
+  function requireCommunity(publishing=false) {
+    const c=demoCommunity();
+    if (!c.ficha || (publishing && !c.puede_publicar)) throw Error(publishing ? "Necesitás una ficha aprobada de organización para publicar." : "Necesitás una ficha aprobada para ver las oportunidades.");
+    return c;
+  }
+  function demoOpportunityNotifications() {
+    const s=read(), viewed=s.opportunityReads[current()?.id] || {};
+    return Object.values(s.opportunities).filter(r=>r.estado==="en_revision").map(r=>({ficha:r.id,version:r.version,nombre:r.titulo,actualizada:r.actualizada,tipo:"oportunidad",leida:(viewed[r.id] || 0)>=r.version}));
+  }
+  function demoCommunityApi() { return {
+    community:async()=>demoCommunity(),
+    opportunities:async(view="board")=>{
+      if(session!=="admin") requireCommunity();
+      return Object.values(read().opportunities).filter(r=>r.estado!=="eliminada" && (session==="admin" || r.titular===current().id || (r.estado==="publicada" && r.fecha_cierre>=new Date().toLocaleDateString("en-CA"))))
+        .filter(r=>view!=="board" || (r.estado==="publicada" && r.fecha_cierre>=new Date().toLocaleDateString("en-CA"))).sort((a,b)=>b.actualizada.localeCompare(a.actualizada));
+    },
+    saveOpportunity:async(id,version,model)=>{
+      const c=requireCommunity(true),s=read(),old=s.opportunities[id];
+      if(id && (!old || old.titular!==current().id || old.version!==version || ["en_revision","eliminada"].includes(old.estado))) throw Error("La oportunidad cambió o está en revisión.");
+      if(model.titulo.trim().length<4 || model.descripcion.trim().length<30 || !model.fecha_cierre || model.fecha_cierre<new Date().toLocaleDateString("en-CA")) throw Error("Completá título, descripción y fecha de cierre.");
+      const row={...model,id:id || crypto.randomUUID(),version:(old?.version || 0)+1,titular:current().id,organizacion:c.ficha.id,estado:"borrador",nota_revision:null,actualizada:new Date().toISOString()};
+      s.opportunities[row.id]=row;write(s);return row;
+    },
+    actOpportunity:async(expected,action,note)=>{
+      const s=read(),row=s.opportunities[expected.id];
+      if(!row || row.version!==expected.version || row.estado==="eliminada") throw Error("La oportunidad cambió. Actualizá la lista.");
+      const owner=row.titular===current()?.id && demoCommunity().puede_publicar,admin=session==="admin";
+      if(!owner && !admin) throw Error("Esta cuenta no puede gestionar la oportunidad.");
+      let state;
+      if(action==="enviar" && owner && ["borrador","correcciones","cerrada"].includes(row.estado)) state="en_revision";
+      else if(action==="retirar" && owner && row.estado==="en_revision") state="borrador";
+      else if(action==="aprobar" && admin && row.estado==="en_revision") state="publicada";
+      else if(action==="correcciones" && admin && row.estado==="en_revision" && note?.trim().length>=3) state="correcciones";
+      else if(action==="cerrar") state="cerrada";
+      else if(action==="eliminar") state="eliminada";
+      else throw Error("La acción no está disponible para esta versión.");
+      if(["publicada","en_revision"].includes(state) && row.fecha_cierre<new Date().toLocaleDateString("en-CA")) throw Error("Actualizá la fecha de cierre.");
+      Object.assign(row,{estado:state,nota_revision:state==="correcciones"?note:null,version:row.version+1,actualizada:new Date().toISOString()});write(s);return row;
+    },
+    applications:async()=>{
+      if(session!=="admin") requireCommunity();const s=read();
+      return Object.values(s.applications).filter(r=>session==="admin" || r.titular===current().id || s.opportunities[r.oportunidad]?.titular===current().id);
+    },
+    applyOpportunity:async(id,message)=>{
+      const c=requireCommunity(),s=read(),o=s.opportunities[id];
+      if(!o || o.estado!=="publicada" || o.fecha_cierre<new Date().toLocaleDateString("en-CA") || o.titular===current().id) throw Error("No podés postularte a esta oportunidad.");
+      const key=id+":"+c.ficha.id, old=s.applications[key];
+      if(old && old.estado!=="retirada") throw Error("Ya te postulaste a esta oportunidad.");
+      const row={id:old?.id || crypto.randomUUID(),oportunidad:id,ficha:c.ficha.id,titular:current().id,mensaje:message,estado:"enviada",version:(old?.version || 0)+1,actualizada:new Date().toISOString()};
+      s.applications[key]=row;write(s);return row;
+    },
+    actApplication:async(expected,status)=>{
+      const s=read(),r=Object.values(s.applications).find(v=>v.id===expected.id);
+      if(!r || r.version!==expected.version) throw Error("La postulación cambió.");
+      if(!(status==="retirada" && r.titular===current()?.id) && !(["seleccionada","descartada"].includes(status) && r.estado!=="retirada" && s.opportunities[r.oportunidad]?.titular===current()?.id)) throw Error("No podés cambiar esta postulación.");
+      Object.assign(r,{estado:status,version:r.version+1,actualizada:new Date().toISOString()});write(s);return r;
+    },
+    markOpportunityRead:async(id,version)=>{
+      moderation();const s=read(),r=s.opportunities[id];if(!r || r.version!==version || r.estado!=="en_revision")return false;
+      s.opportunityReads[current().id] ||= {};s.opportunityReads[current().id][id]=version;write(s);return true;
+    },
+    appDownloads:async()=>read().downloads,
+    saveDownloads:async(android,ios)=>{moderation();const s=read();s.downloads={android_url:android,ios_url:ios};write(s);return s.downloads;},
+    appReports:async()=>{moderation();return [];},reviewReport:async()=>{moderation();},
+  }; }
+
   function sortedSponsors(state) {
     return Object.values(state.sponsors).sort((a, b) => a.orden - b.orden || a.id.localeCompare(b.id));
   }
 
   return {
+    ...demoCommunityApi(),
     mode: "demo",
     watch: () => {},
     user: async () => current(),
@@ -290,6 +392,7 @@ function backendDemo() {
       if (!Object.hasOwn(accounts, role)) throw Error("Elegí una cuenta de prueba.");
       localStorage.setItem(sessionKey, role);
       session = role;
+      ensureDemoOrganization(role);
     },
     logout: async () => {
       session = null;
@@ -306,7 +409,7 @@ function backendDemo() {
       write(storage);
       return row;
     },
-    notifications: async () => { moderation(); return notificationRows(read()); },
+    notifications: async () => { moderation(); return [...notificationRows(read()), ...demoOpportunityNotifications()]; },
     markRequestRead: async (id, version) => {
       moderation();
       const storage = read();

@@ -200,13 +200,15 @@ function activateSection(section) {
   state.section = section;
   const managing = section === "management";
   const manifest = section === "manifesto";
-  byId("explorar").hidden = managing || manifest;
-  select(".hero").hidden = managing || manifest;
+  const opportunities = section === "opportunities";
+  byId("explorar").hidden = managing || manifest || opportunities;
+  select(".hero").hidden = managing || manifest || opportunities;
   byId("management-panel").hidden = !managing;
   byId("manifesto-panel").hidden = !manifest;
+  byId("opportunities-panel").hidden = !opportunities;
   const skip = select(".skip-link");
-  skip.href = managing ? "#management-panel" : manifest ? "#manifesto-panel" : "#explorar";
-  skip.textContent = managing ? "Ir a Gestión" : manifest ? "Ir al manifiesto" : "Ir al explorador";
+  skip.href = opportunities ? "#opportunities-panel" : managing ? "#management-panel" : manifest ? "#manifesto-panel" : "#explorar";
+  skip.textContent = opportunities ? "Ir a Oportunidades" : managing ? "Ir a Gestión" : manifest ? "Ir al manifiesto" : "Ir al explorador";
   for (const button of selectAll(".header-nav [data-section]")) {
     const current = button.dataset.section === section;
     button.classList.toggle("is-active", current);
@@ -215,12 +217,16 @@ function activateSection(section) {
   }
   if (!managing) {
     clearMfa();
-    if (!manifest && map && state.view === "map") map.invalidateSize({ pan: false });
+    if (!manifest && !opportunities && map && state.view === "map") map.invalidateSize({ pan: false });
   }
 }
 
 function setSection(section) {
-  if (!["explore", "saved", "management", "manifesto"].includes(section) || section === state.section) return;
+  if (!["explore", "saved", "management", "manifesto", "opportunities"].includes(section) || section === state.section) return;
+  if (section === "opportunities") {
+    void showOpportunities();
+    return;
+  }
   if (section === "management") {
     void showReview();
     return;

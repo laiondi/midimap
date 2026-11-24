@@ -28,6 +28,16 @@
     "platforms": [
       "android",
       "ios"
-    ]
+    ],
+    "extra": {
+      "router": {
+        "asyncRoutes": {
+          "web": true
+        }
+      },
+      "eas": {
+        "projectId": "2313ed68-6b84-4d4b-a836-bb1117199ac3"
+      }
+    }
   }
 }

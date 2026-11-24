@@ -155,27 +155,16 @@ async function renderOpportunityAdmin() {
   byId("admin-opportunity-list").innerHTML=visible.length?visible.map(r=>opportunityCard(r,true)).join(""):'<div class="community-empty"><h3>No hay oportunidades en este estado</h3></div>';
 }
 async function loadAppAdmin() {
-  const user=sessionUser?.id,[downloads,reports]=await Promise.all([backend.appDownloads(),backend.appReports()]);
+  const user=sessionUser?.id,reports=await backend.appReports();
   if(user!==sessionUser?.id || !canManage)return;
-  byId("download-android").value=downloads.android_url || "";byId("download-ios").value=downloads.ios_url || "";
   byId("app-reports").innerHTML=reports.length?reports.map(r=>`<article class="application-card"><h3>${escapeHtml(catalog.find(p=>p.id===r.ficha)?.name || "Ficha reportada")}</h3><p class="community-long-text">${escapeHtml(r.motivo)}</p><button class="button secondary" type="button" data-report-reviewed="${escapeHtml(r.id)}">Marcar revisado</button></article>`).join(""):"<p>No hay reportes pendientes.</p>";
 }
-async function refreshAppDownloads() {
-  const status=byId("app-download-status"),links=byId("app-download-links");links.replaceChildren();status.textContent="Cargando enlaces de instalación…";
-  try {
-    const row=await backend.appDownloads();let count=0;
-    for(const [field,label] of [["android_url","Descargar para Android"],["ios_url","Instalar en iPhone"]]) {
-      const url=safeWebUrl(row[field]);if(!url)continue;
-      const link=document.createElement("a");link.href=url;link.target="_blank";link.rel="noopener noreferrer";link.className="button primary";link.textContent=label;links.append(link);count++;
-    }
-    status.textContent=count?"La instalación se abre en el enlace de distribución de cada plataforma.":"La app todavía no tiene una descarga publicada. MiDi habilitará los enlaces cuando la versión instalable esté disponible.";
-  } catch {status.textContent="No se pudieron cargar los enlaces de instalación. Cerrá esta ventana y volvé a intentar.";}
+function refreshAppDownloads() {
+  const status=byId("app-download-status"),links=byId("app-download-links");links.replaceChildren();
+  const link=document.createElement("a");link.href=new URL("conecta/",document.baseURI).href;
+  link.className="button primary";link.textContent="Abrir MiDi Conecta";links.append(link);
+  status.textContent="En Android: abrí el menú de Chrome y elegí Instalar aplicación o Agregar a pantalla de inicio. En iPhone: Safari, Compartir y Agregar a pantalla de inicio. También podés usarla desde el navegador.";
 }
-byId("app-downloads-form").addEventListener("submit",e=>{e.preventDefault();void runAction(managementPanel,"app-downloads-message",async()=>{
-  const a=byId("download-android").value.trim(),i=byId("download-ios").value.trim();
-  if((a && !isPublicLink(a)) || (i && !isPublicLink(i)))throw Error("Ingresá enlaces HTTPS válidos.");
-  await backend.saveDownloads(a,i);feedback("app-downloads-message","Enlaces de descarga guardados.");
-},"No se pudieron guardar los enlaces.");});
 byId("download-app-button").addEventListener("click",()=>{showPanel(byId("app-download-dialog"));void refreshAppDownloads();});
 byId("new-opportunity").addEventListener("click",()=>editOpportunity());
 byId("op-modality").addEventListener("change",()=>{byId("op-town").required=byId("op-modality").value!=="remoto";});

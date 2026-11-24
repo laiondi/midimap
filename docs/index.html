@@ -10,20 +10,20 @@
   <link rel="icon" href="assets/midi-simbolo.webp" type="image/webp">
   <link rel="preload" href="assets/fonts/bricolage.woff2" as="font" type="font/woff2" crossorigin>
   <link rel="stylesheet" href="assets/vendor/leaflet/leaflet.css">
-  <link rel="stylesheet" href="styles.css?v=2.4-comunidad-1">
+  <link rel="stylesheet" href="styles.css?v=2.5-pwa-1">
   <script defer src="assets/vendor/leaflet/leaflet.js"></script>
-  <script defer src="data.js?v=2.4-comunidad-1"></script>
+  <script defer src="data.js?v=2.5-pwa-1"></script>
   <script defer src="assets/map-data.js"></script>
   <script defer src="assets/vendor/supabase/supabase.js"></script>
   <script defer src="config.js"></script>
-  <script defer src="backend.js?v=2.4-comunidad-1"></script>
-  <script defer src="app.js?v=2.4-comunidad-1"></script>
+  <script defer src="backend.js?v=2.5-pwa-1"></script>
+  <script defer src="app.js?v=2.5-pwa-1"></script>
   <script defer src="ratings.js?v=2.2"></script>
   <script defer src="sponsors.js?v=2.3-formularios-1"></script>
-  <script defer src="manifesto.js?v=2.4-comunidad-1"></script>
-  <script defer src="notifications.js?v=2.4-comunidad-1"></script>
-  <script defer src="opportunities.js?v=2.4-comunidad-1"></script>
-  <script defer src="account.js?v=2.4-comunidad-1"></script>
+  <script defer src="manifesto.js?v=2.5-pwa-1"></script>
+  <script defer src="notifications.js?v=2.5-pwa-1"></script>
+  <script defer src="opportunities.js?v=2.5-pwa-1"></script>
+  <script defer src="account.js?v=2.5-pwa-1"></script>
 </head>
 <body>
   <svg class="icon-sprite" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
@@ -86,7 +86,7 @@
         <button type="button" class="icon-button notifications-button" id="notifications-button" aria-label="Ver solicitudes" title="Solicitudes" hidden>
           <svg class="icon"><use href="#i-mail"></use></svg><span id="notifications-unread" class="notification-count" hidden></span>
         </button>
-        <button type="button" class="button secondary account-button" id="download-app-button" aria-label="Descargar la app"><svg class="icon"><use href="#i-phone"></use></svg><span>App</span></button>
+        <button type="button" class="button secondary account-button" id="download-app-button" aria-label="Abrir MiDi Conecta"><svg class="icon"><use href="#i-phone"></use></svg><span>Conecta</span></button>
         <button type="button" class="button secondary account-button" data-account="account" id="account-button" aria-label="Ingresar">
           <svg class="icon"><use href="#i-user"></use></svg><span>Ingresar</span>
         </button>
@@ -304,7 +304,7 @@
           </form>
         </section>
         <section id="admin-oportunidades" aria-label="Gestión de oportunidades" hidden><div class="community-heading"><div><h2>Oportunidades</h2><p class="field-help">Revisá las publicaciones de la comunidad antes de aprobarlas.</p></div><label>Estado<select id="admin-opportunity-status"><option value="en_revision">En revisión</option><option value="">Todas</option><option value="publicada">Publicadas</option><option value="correcciones">Con correcciones</option><option value="cerrada">Cerradas</option><option value="borrador">Borradores</option></select></label></div><div id="admin-opportunity-list" class="opportunity-list"></div></section>
-        <section id="admin-app" aria-label="Gestión de la app" hidden><h2>App MiDi Conecta</h2><p class="field-help">Agregá los enlaces de instalación cuando tengas las versiones de la app publicadas o distribuidas para pruebas.</p><form id="app-downloads-form" class="account-form manifesto-form"><label for="download-android">Android · opcional</label><input id="download-android" name="android" type="url" maxlength="300" placeholder="https://"><label for="download-ios">iPhone · opcional</label><input id="download-ios" name="ios" type="url" maxlength="300" placeholder="https://"><button type="submit" class="button primary">Guardar enlaces de descarga</button><p id="app-downloads-message" class="inline-feedback" role="status" hidden></p></form><h3 class="community-subheading">Reportes de perfiles en la app</h3><p class="field-help">Los reportes se revisan desde Gestión. Podés pausar o eliminar la ficha desde Fichas si corresponde.</p><div id="app-reports" class="admin-list"></div></section>
+        <section id="admin-app" aria-label="Gestión de Conecta" hidden><h2>MiDi Conecta</h2><p class="field-help">Conecta se abre desde la web y se puede agregar a la pantalla de inicio del teléfono. Las cuentas y las fichas se comparten con el mapa.</p><p><a class="button secondary" href="conecta/" target="_blank" rel="noopener noreferrer">Abrir MiDi Conecta</a></p><h3 class="community-subheading">Reportes de perfiles en Conecta</h3><p class="field-help">Podés revisar los reportes y pausar o eliminar una ficha desde Fichas cuando corresponda.</p><div id="app-reports" class="admin-list"></div></section>
         <section id="admin-manifesto" aria-label="Edición del manifiesto" hidden>
           <h2>Manifiesto público</h2>
           <p class="field-help">Editá el texto que se muestra en la pestaña Manifiesto. Los cambios aparecen en la web cuando los publicás.</p>
@@ -518,7 +518,7 @@
   <dialog id="opportunity-editor" class="workspace-dialog" aria-labelledby="opportunity-editor-title"><div class="modal-inner"><form method="dialog"><button class="modal-close icon-button" aria-label="Cerrar editor de oportunidad"><svg class="icon"><use href="#i-close"></use></svg></button></form><h2 id="opportunity-editor-title">Nueva oportunidad</h2><p class="field-help">Los campos indicados son obligatorios. Se revisa antes de publicar. Si editás una oportunidad publicada, se retira hasta aprobar la nueva versión.</p>
     <form id="opportunity-form" class="account-form"><label for="op-title">Título · obligatorio</label><input id="op-title" name="titulo" minlength="4" maxlength="120" required><label for="op-description">Descripción · obligatorio, mínimo 30 caracteres</label><textarea id="op-description" name="descripcion" minlength="30" maxlength="5000" rows="5" required></textarea><label for="op-requirements">Requisitos · opcional</label><textarea id="op-requirements" name="requisitos" maxlength="2000" rows="3"></textarea><div class="form-row"><div><label for="op-modality">Modalidad · obligatorio</label><select id="op-modality" name="modalidad" required><option value="presencial">Presencial</option><option value="remoto">Remoto</option><option value="hibrido">Híbrido</option></select></div><div><label for="op-contract">Tipo de oportunidad · obligatorio</label><select id="op-contract" name="vinculo" required><option value="empleo">Empleo</option><option value="proyecto">Proyecto</option><option value="practica">Práctica</option><option value="colaboracion">Colaboración</option></select></div></div><label for="op-town">Localidad · obligatoria para presencial o híbrido</label><select id="op-town" name="localidad"><option value="">Elegí una localidad</option></select><label for="op-pay">Remuneración o presupuesto · opcional</label><input id="op-pay" name="remuneracion" maxlength="180" placeholder="Ej. Presupuesto por proyecto"><label for="op-deadline">Fecha de cierre · obligatoria</label><input id="op-deadline" name="fecha_cierre" type="date" required><p id="opportunity-editor-message" class="inline-feedback" role="status" hidden></p><div class="dialog-actions"><button type="submit" class="button secondary" value="save">Guardar borrador</button><button type="submit" class="button primary" value="send">Enviar a revisión</button></div></form></div></dialog>
   <dialog id="opportunity-detail" class="workspace-dialog" aria-labelledby="opportunity-detail-title"><div class="modal-inner"><form method="dialog"><button class="modal-close icon-button" aria-label="Cerrar detalle de oportunidad"><svg class="icon"><use href="#i-close"></use></svg></button></form><div id="opportunity-detail-body"></div><p id="opportunity-detail-message" class="inline-feedback" role="status" hidden></p></div></dialog>
-  <dialog id="app-download-dialog" class="workspace-dialog" aria-labelledby="app-download-title"><div class="modal-inner"><form method="dialog"><button class="modal-close icon-button" aria-label="Cerrar descargas"><svg class="icon"><use href="#i-close"></use></svg></button></form><p class="manifesto-eyebrow">Tu comunidad, en movimiento</p><h2 id="app-download-title">MiDi Conecta</h2><p>Encontrá perfiles del ecosistema creativo, deslizá para expresar interés y conectá cuando el interés sea mutuo.</p><p>Ingresá con la misma cuenta del mapa. Tu ficha aprobada es tu perfil en la app.</p><div id="app-download-links" class="dialog-actions"></div><p id="app-download-status" class="field-help" role="status"></p></div></dialog>
+  <dialog id="app-download-dialog" class="workspace-dialog" aria-labelledby="app-download-title"><div class="modal-inner"><form method="dialog"><button class="modal-close icon-button" aria-label="Cerrar descargas"><svg class="icon"><use href="#i-close"></use></svg></button></form><p class="manifesto-eyebrow">Tu comunidad, en movimiento</p><h2 id="app-download-title">MiDi Conecta</h2><p>Encontrá perfiles del ecosistema creativo, deslizá para expresar interés y conectá cuando el interés sea mutuo.</p><p>Ingresá con la misma cuenta del mapa. Tu ficha aprobada es tu perfil de Conecta. Agregala a la pantalla de inicio desde el navegador de tu teléfono.</p><div id="app-download-links" class="dialog-actions"></div><p id="app-download-status" class="field-help" role="status"></p></div></dialog>
   <div class="toast" id="toast" role="status" hidden></div>
 </body>
 </html>

@@ -1,0 +1,58 @@
+<!doctype html>
+<html lang="es-AR">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <meta name="theme-color" content="#181146">
+  <meta name="description" content="Conectá con personas y organizaciones del ecosistema creativo de Misiones. Usá tu perfil del Mapa Creativo MiDi.">
+  <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self'; style-src 'self'; img-src 'self' data: https://*.supabase.co; connect-src 'self' https://*.supabase.co wss://*.supabase.co; font-src 'self'; object-src 'none'; base-uri 'self'; form-action 'self'; worker-src 'self'; manifest-src 'self'">
+  <title>MiDi Conecta</title>
+  <link rel="manifest" href="manifest.webmanifest">
+  <link rel="icon" href="icons/icon-192.png" type="image/png">
+  <link rel="apple-touch-icon" href="icons/icon-192.png">
+  <link rel="stylesheet" href="styles.css?v=2.5.0">
+  <script defer src="../assets/vendor/supabase/supabase.js?v=2.5.0"></script>
+  <script defer src="../config.js"></script>
+  <script type="module" src="app.mjs?v=2.5.0"></script>
+  <script defer src="install.js?v=2.5.0"></script>
+</head>
+<body>
+  <a class="skip" href="#content">Ir al contenido</a>
+  <div class="app-shell">
+    <header class="topbar"><a class="brand" href="./" aria-label="MiDi Conecta, inicio"><span>MiDi</span><b>Conecta<span class="brand-dot">.</span></b></a><button id="install" type="button" class="button compact secondary">Agregar a inicio</button></header>
+    <div id="offline" class="notice" role="status" hidden>Estás sin conexión. Conecta necesita internet para cargar perfiles y guardar tus decisiones.</div>
+    <div id="message" class="notice error" role="alert" hidden></div>
+    <main id="content" tabindex="-1">
+      <section id="loading" class="empty" aria-live="polite"><div class="loader"></div><p>Preparando tu comunidad…</p></section>
+      <section id="setup" class="empty" hidden><p class="eyebrow">Nos estamos preparando</p><h1>Tu comunidad, más cerca.</h1><p>MiDi está preparando Conecta. Mientras tanto, podés explorar el Mapa Creativo.</p><a class="button primary map-link" href="../">Abrir el mapa</a></section>
+      <section id="login" hidden>
+        <div class="intro"><p class="eyebrow">La red que conecta tu talento</p><h1>Encontrá tu próxima conexión<span>.</span></h1><p>Personas, estudios y talleres que también buscan crear en compañía.</p><div class="intro-orbit" aria-hidden="true"><span>Diseño</span><span>Producción</span><span>Ideas</span><b>+</b></div></div>
+        <div class="panel"><h2>Entrá con tu cuenta del mapa</h2><p class="muted">Tu ficha aprobada ya es tu perfil de Conecta.</p>
+          <form id="email-form"><label for="email">Correo de ingreso</label><input id="email" name="email" type="email" autocomplete="email" maxlength="254" placeholder="Tu correo" required><button class="button primary" type="submit">Recibir código</button></form>
+          <form id="code-form" hidden><p id="code-destination" class="muted"></p><label for="code">Código del correo</label><input id="code" name="code" inputmode="numeric" autocomplete="one-time-code" pattern="[0-9]{6,10}" minlength="6" maxlength="10" required><button class="button primary" type="submit">Ingresar a Conecta</button><button id="change-email" type="button" class="button text">Cambiar correo o pedir otro código</button></form>
+          <p class="small">¿Todavía no tenés una ficha? <a class="map-link" href="../">Creala en el Mapa Creativo</a>.</p>
+        </div>
+      </section>
+      <section id="gate" class="empty" hidden><p class="eyebrow">Tu perfil del mapa</p><h1>Empezá por tu ficha.</h1><p>Para conectar necesitás una ficha aprobada y publicada. Si ya la enviaste, podés consultar su estado en el mapa. Las cuentas administradoras gestionan la comunidad desde la web.</p><a class="button primary map-link" href="../">Ir a mi cuenta en el mapa</a><button id="gate-refresh" class="button secondary" type="button">Actualizar mi estado</button><button class="button text logout" type="button">Cerrar sesión</button></section>
+      <section id="workspace" hidden>
+        <div class="page-heading"><div><p id="view-eyebrow" class="eyebrow">Tu comunidad creativa</p><h1 id="view-title">Descubrí tu red.</h1></div><button id="refresh" type="button" class="button compact secondary" aria-label="Actualizar perfiles y conexiones">Actualizar</button></div>
+        <section id="discover-view">
+          <div id="participation" class="panel" hidden><div class="feature-symbol" aria-hidden="true">✳</div><h2>Tu próxima conexión empieza acá.</h2><p>Activá tu participación para mostrar tu ficha a otras personas de la comunidad.</p><p class="muted">Cuando ambos marquen interés, aparecerá la conexión. Podés pausar tu participación cuando quieras.</p><button id="activate" class="button primary" type="button">Activar mi perfil en Conecta</button></div>
+          <div id="discovery" hidden>
+            <form id="filters" class="filters"><details><summary>Filtrar perfiles <span id="filter-count"></span></summary><div class="filter-fields"><label for="filter-type">Tipo de perfil</label><select id="filter-type"><option value="">Todos los perfiles</option><option value="profesional">Profesionales</option><option value="estudio">Estudios</option><option value="empresa">Empresas</option><option value="taller">Talleres</option><option value="espacio">Espacios</option></select><label for="filter-category">Rubro</label><select id="filter-category"><option value="">Todos los rubros</option></select><label for="filter-town">Localidad</label><select id="filter-town"><option value="">Todas las localidades</option></select><div class="actions"><button class="button primary" type="submit">Aplicar filtros</button><button id="clear-filters" class="button secondary" type="button">Limpiar</button></div></div></details></form>
+            <div id="cards" aria-live="polite"></div>
+          </div>
+        </section>
+        <section id="connections-view" hidden><p class="section-intro">Personas y organizaciones que también quieren conectar con vos.</p><div id="connections" class="connection-list" aria-live="polite"></div></section>
+        <section id="profile-view" hidden><div id="my-profile"></div><div class="panel account-panel"><a class="button secondary map-link" href="../">Editar mi ficha en el mapa</a><button id="toggle-participation" class="button secondary" type="button">Pausar participación</button><button class="button text logout" type="button">Cerrar sesión</button><p id="session-email" class="small muted"></p></div></section>
+      </section>
+    </main>
+    <nav id="tabs" class="tabs" aria-label="Navegación de Conecta" hidden><button data-view="discover" aria-current="page" type="button"><span aria-hidden="true">✳</span>Descubrir</button><button data-view="connections" type="button"><span aria-hidden="true">◎</span>Conexiones</button><button data-view="profile" type="button"><span aria-hidden="true">◉</span>Mi perfil</button></nav>
+    <footer class="app-footer"><a class="map-link" href="../">Mapa Creativo de Misiones</a><span>Impulsado por MiDi</span></footer>
+  </div>
+  <dialog id="install-dialog" aria-labelledby="install-title"><div class="dialog-body"><button class="close" type="button" data-close="install-dialog" aria-label="Cerrar instrucciones">×</button><p class="eyebrow">Conecta, siempre a mano</p><h2 id="install-title">Agregala a tu pantalla de inicio.</h2><div id="install-steps"></div><p class="small muted">Podés usar Conecta desde el navegador sin agregarla. Necesita conexión para consultar perfiles y guardar tus acciones.</p><button class="button primary" type="button" data-close="install-dialog">Entendido</button></div></dialog>
+  <dialog id="match-dialog" aria-labelledby="match-title"><div class="dialog-body match"><button class="close" type="button" data-close="match-dialog" aria-label="Cerrar conexión">×</button><div class="match-symbol" aria-hidden="true">✳</div><p class="eyebrow">El interés es mutuo</p><h2 id="match-title">Hay una conexión.</h2><p id="match-description"></p><button id="show-connections" class="button primary" type="button">Ver conexiones</button><button class="button secondary" type="button" data-close="match-dialog">Seguir descubriendo</button></div></dialog>
+  <dialog id="report-dialog" aria-labelledby="report-title"><div class="dialog-body"><button class="close" type="button" data-close="report-dialog" aria-label="Cerrar reporte">×</button><h2 id="report-title">Cuidemos la comunidad.</h2><p id="report-name"></p><form id="report-form"><label for="reason">¿Qué ocurrió?</label><textarea id="reason" name="reason" minlength="5" maxlength="1000" rows="4" required></textarea><p class="small muted">MiDi revisará el reporte. El perfil también quedará bloqueado para vos.</p><button class="button primary" type="submit">Reportar y bloquear</button></form><button id="block-only" class="button secondary" type="button">Solo bloquear este perfil</button><p id="report-error" class="notice error" role="alert" hidden></p></div></dialog>
+  <noscript>Para usar Conecta, activá JavaScript en tu navegador.</noscript>
+</body>
+</html>

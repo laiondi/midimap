@@ -113,7 +113,6 @@ function paintAccountNav() {
   join.querySelector("use").setAttribute("href", sessionUser ? "#i-user" : "#i-plus");
   join.hidden = canManage;
   byId("account-profile-button").hidden = canManage;
-  byId("notifications-button").hidden = !canManage;
   for (const button of selectAll('.header-nav [data-section]:not([data-section="management"])')) button.hidden = canManage;
   byId("management-nav").hidden = !canManage;
   byId("opportunities-nav").hidden = canManage || !communityContext?.ficha;

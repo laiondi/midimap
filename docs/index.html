@@ -10,7 +10,7 @@
   <link rel="icon" href="assets/midi-simbolo.webp" type="image/webp">
   <link rel="preload" href="assets/fonts/bricolage.woff2" as="font" type="font/woff2" crossorigin>
   <link rel="stylesheet" href="assets/vendor/leaflet/leaflet.css">
-  <link rel="stylesheet" href="styles.css?v=2.5-pwa-1">
+  <link rel="stylesheet" href="styles.css?v=2.5.1-cabecera-footer-1">
   <script defer src="assets/vendor/leaflet/leaflet.js"></script>
   <script defer src="data.js?v=2.5-pwa-1"></script>
   <script defer src="assets/map-data.js"></script>
@@ -21,9 +21,9 @@
   <script defer src="ratings.js?v=2.2"></script>
   <script defer src="sponsors.js?v=2.3-formularios-1"></script>
   <script defer src="manifesto.js?v=2.5-pwa-1"></script>
-  <script defer src="notifications.js?v=2.5-pwa-1"></script>
+  <script defer src="notifications.js?v=2.5.1-cabecera-footer-1"></script>
   <script defer src="opportunities.js?v=2.5-pwa-1"></script>
-  <script defer src="account.js?v=2.5-pwa-1"></script>
+  <script defer src="account.js?v=2.5.1-cabecera-footer-1"></script>
 </head>
 <body>
   <svg class="icon-sprite" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
@@ -83,10 +83,10 @@
         </button>
       </nav>
       <div class="account-actions">
-        <button type="button" class="icon-button notifications-button" id="notifications-button" aria-label="Ver solicitudes" title="Solicitudes" hidden>
-          <svg class="icon"><use href="#i-mail"></use></svg><span id="notifications-unread" class="notification-count" hidden></span>
+        <button type="button" class="conecta-brand-button" id="download-app-button" aria-label="Abrir MiDi Conecta" title="Abrir MiDi Conecta">
+          <span class="conecta-brand-name" aria-hidden="true">MiDi</span>
+          <span class="conecta-brand-label" aria-hidden="true">Conecta<span class="conecta-brand-dot">.</span></span>
         </button>
-        <button type="button" class="button secondary account-button" id="download-app-button" aria-label="Abrir MiDi Conecta"><svg class="icon"><use href="#i-phone"></use></svg><span>Conecta</span></button>
         <button type="button" class="button secondary account-button" data-account="account" id="account-button" aria-label="Ingresar">
           <svg class="icon"><use href="#i-user"></use></svg><span>Ingresar</span>
         </button>
@@ -178,10 +178,10 @@
       </section>
     </div>
 
-    <footer class="app-footer">
-      <section id="sponsors" class="sponsors" aria-label="Publicidad de patrocinadores" hidden>
+    <div class="app-footer">
+      <section id="sponsors" class="sponsors" aria-label="Nos acompañan · Patrocinadores" hidden>
         <div class="sponsor-heading">
-          <h2>Publicidad <small id="sponsor-demo" hidden>Ejemplos</small></h2>
+          <h2>Nos acompañan <small id="sponsor-demo" hidden>Ejemplos</small></h2>
           <div id="sponsor-controls" class="sponsor-controls" role="group" aria-label="Controles de anuncios" hidden>
             <span id="sponsor-position" aria-live="off"></span>
             <button class="icon-button" type="button" id="sponsor-toggle" aria-label="Pausar anuncios"><svg class="icon"><use href="#i-pause"></use></svg></button>
@@ -197,7 +197,7 @@
         </button>
         <p id="connection-note" aria-live="polite"></p>
       </div>
-    </footer>
+    </div>
   </main>
 
   <main id="manifesto-panel" class="shell manifesto-panel" aria-labelledby="manifesto-title" tabindex="-1" hidden>
@@ -331,6 +331,26 @@
       <p id="review-message" class="inline-feedback" role="status" hidden></p>
     </div>
   </main>
+
+  <footer class="site-footer" aria-label="Contacto de MiDi">
+    <div class="shell site-footer-inner">
+      <div class="footer-identity">
+        <p class="footer-brand">MiDi</p>
+        <p>Mapa Creativo de Misiones</p>
+      </div>
+      <address class="footer-contact">
+        <div>
+          <span class="footer-label">Email</span>
+          <a href="mailto:serviciosmidi@gmail.ar">serviciosmidi@gmail.ar</a>
+        </div>
+        <div>
+          <span class="footer-label">Teléfono</span>
+          <a href="tel:+543765227371">0376 522-7371</a>
+        </div>
+      </address>
+      <p class="footer-credit">Powered by <a href="https://laiondi.github.io/laiondesignstudio/" target="_blank" rel="noopener noreferrer">Laion</a></p>
+    </div>
+  </footer>
 
   <dialog id="profile-dialog" class="profile-dialog" aria-labelledby="profile-title">
     <article id="profile-body"></article>

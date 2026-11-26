@@ -481,6 +481,29 @@ body:has(dialog[open]) { overflow: hidden; }
 
 .account-actions { display: flex; align-items: center; gap: 8px; justify-self: end; }
 .account-button { white-space: nowrap; }
+.conecta-brand-button {
+  display: inline-flex; flex-direction: column; align-items: center; justify-content: center;
+  flex: 0 0 auto; gap: 2px; width: 88px; min-height: 54px; padding: 6px 10px;
+  border: 1px solid var(--ink); border-radius: 11px; background: var(--ink); color: var(--white);
+  line-height: 1; text-decoration: none; transition: background .15s, border-color .15s;
+}
+.conecta-brand-button:hover { background: #302365; border-color: #302365; }
+.conecta-brand-name { font: 750 22px/1 var(--display); letter-spacing: -.045em; }
+.conecta-brand-label { font: 700 14px/1.1 var(--text); letter-spacing: -.02em; }
+.conecta-brand-dot { color: var(--pink); }
+.site-footer { margin-top: 24px; background: var(--ink); color: var(--white); }
+.site-footer-inner { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 2fr); gap: 28px 36px; padding-block: 32px 20px; }
+.footer-identity { align-self: start; }
+.footer-brand { font: 750 28px/1.1 var(--display); letter-spacing: -.04em; }
+.footer-identity > p + p { margin-top: 8px; font-size: 14px; color: #e4dff4; }
+.footer-contact { display: grid; grid-template-columns: minmax(0, 1.35fr) minmax(0, 1fr); gap: 18px 24px; margin: 0; font-style: normal; }
+.footer-contact > div { display: grid; align-content: start; gap: 6px; min-width: 0; }
+.footer-label { font-size: 14px; color: #e4dff4; }
+.site-footer a { color: var(--white); text-decoration: underline; text-underline-offset: 4px; overflow-wrap: anywhere; }
+.site-footer a:hover { color: var(--gold); }
+.footer-contact a { display: inline-flex; align-items: center; min-height: 30px; font-size: 16px; width: fit-content; max-width: 100%; }
+.footer-credit { grid-column: 1 / -1; padding-top: 16px; border-top: 1px solid #ffffff30; font-size: 14px; color: #e4dff4; }
+.footer-credit a { font-weight: 700; }
 .workspace-dialog { width: min(100% - 30px, 692px); }
 .dialog-actions { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; margin-top: 14px; }
 .dialog-actions .button { margin-top: 0; }
@@ -621,8 +644,6 @@ body:has(dialog[open]) { overflow: hidden; }
 }
 
 .notification-count { flex-shrink: 0; display: inline-flex; align-items: center; justify-content: center; min-width: 20px; height: 20px; padding-inline: 5px; border-radius: 10px; background: var(--gold); color: var(--ink); font: 750 11px/1 var(--text); }
-.notifications-button { position: relative; border: 1px solid var(--line); background: var(--white); flex-shrink: 0; }
-.notifications-button .notification-count { position: absolute; top: -6px; right: -6px; }
 .notifications-summary { display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 12px; padding: 14px 16px; margin-bottom: 16px; border: 1px solid var(--line); border-radius: 10px; background: var(--lavender); }
 .notifications-summary p { margin: 0; font-size: 14px; }
 .admin-switch { flex-wrap: wrap; max-width: 100%; }
@@ -701,4 +722,17 @@ body:has(dialog[open]) { overflow: hidden; }
   .header-inner .header-nav .nav-button {font-size:14px;}
   .header-inner .header-nav:has(#opportunities-nav:not([hidden])) {display:grid;grid-template-columns:repeat(2,minmax(0,1fr));width:100%;justify-items:center;}
   .header-inner .header-nav:has(#opportunities-nav:not([hidden])) .nav-button {width:100%;justify-content:center;}
+  .conecta-brand-button { width: 76px; min-height: 50px; padding-inline: 6px; }
+  .header-inner { grid-template-columns: minmax(0, 1fr) 76px 38px; padding-block: 8px; }
+  .header-inner .brand { grid-row: 1; grid-column: 1; }
+  .header-inner .account-actions { display: contents; }
+  #download-app-button { grid-row: 1; grid-column: 2; }
+  #account-button { grid-row: 1; grid-column: 3; }
+  #join-button { grid-row: 2; grid-column: 1 / -1; justify-self: stretch; min-height: 44px; font-size: 14px; }
+  .header-inner:has(#join-button:not([hidden])) .header-nav { grid-row: 3; }
+  .header-inner .header-nav:not(:has(#management-nav:not([hidden]))):not(:has(#opportunities-nav:not([hidden]))) { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); width: 100%; }
+  .header-inner .header-nav .nav-button { justify-content: center; padding-inline: 0; }
+  .site-footer-inner { grid-template-columns: minmax(0, 1fr); gap: 24px; padding-block: 28px 20px; }
+  .footer-contact { grid-template-columns: minmax(0, 1fr); gap: 18px; }
+  .footer-contact a { min-height: 36px; }
 }

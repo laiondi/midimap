@@ -14,13 +14,10 @@ function paintRequestNotifications() {
   const pending = adminNotifications.length;
   const profilePending = adminNotifications.filter(row => row.tipo !== "oportunidad").length;
   const opportunityPending = pending - profilePending;
-  for (const id of ["management-unread", "notifications-unread"]) {
-    const badge = byId(id);
-    badge.textContent = unread > 99 ? "99+" : String(unread);
-    badge.hidden = !unread;
-  }
+  const badge = byId("management-unread");
+  badge.textContent = unread > 99 ? "99+" : String(unread);
+  badge.hidden = !unread;
   byId("management-nav").setAttribute("aria-label", unread ? `Gestión, ${unread} ${unread === 1 ? "solicitud" : "solicitudes"} sin leer` : "Gestión");
-  byId("notifications-button").setAttribute("aria-label", unread ? `Solicitudes: ${unread} sin leer` : "Ver solicitudes");
   byId("requests-count").textContent = String(profilePending);
   byId("requests-count").hidden = !profilePending;
   byId("opportunity-requests-count").textContent = String(opportunityPending);
@@ -114,11 +111,6 @@ async function markRequestRead(entry) {
   }
 }
 
-byId("notifications-button").addEventListener("click", () => {
-  if (!canManage) return;
-  adminView = adminNotifications.some(row => row.tipo === "oportunidad" && !row.leida) ? "oportunidades" : "solicitudes";
-  void showReview();
-});
 byId("notifications-refresh").addEventListener("click", () => {
   void runAction(managementPanel, "review-message", async () => {
     await refreshAdminNotifications(true);

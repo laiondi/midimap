@@ -1,8 +1,8 @@
 "use strict";
 const CACHE_PREFIX='midi-conecta-shell-';
-const CACHE=CACHE_PREFIX+'2.5.0';
+const CACHE=CACHE_PREFIX+'2.6.0';
 const ROOT=new URL('./',self.location.href);
-const SHELL=['./','index.html','styles.css?v=2.5.0','app.mjs?v=2.5.0','core.mjs?v=2.5.0','labels.mjs?v=2.5.0','install.js?v=2.5.0','manifest.webmanifest','icons/icon-192.png','icons/icon-512.png','icons/maskable-512.png','../assets/vendor/supabase/supabase.js?v=2.5.0','../assets/fonts/bricolage.woff2','../assets/fonts/instrument-sans.woff2'].map(p=>new URL(p,ROOT).href);
+const SHELL=['./','index.html','styles.css?v=2.6.0','app.mjs?v=2.6.0','core.mjs?v=2.6.0','labels.mjs?v=2.6.0','install.js?v=2.6.0','../profile-media.js?v=2.6.0','../media.css?v=2.6.0','manifest.webmanifest','icons/icon-192.png','icons/icon-512.png','icons/maskable-512.png','../assets/vendor/supabase/supabase.js?v=2.6.0','../assets/fonts/bricolage.woff2','../assets/fonts/instrument-sans.woff2'].map(p=>new URL(p,ROOT).href);
 self.addEventListener('install',event=>{event.waitUntil(caches.open(CACHE).then(cache=>cache.addAll(SHELL)));});
 self.addEventListener('activate',event=>{event.waitUntil((async()=>{for(const name of await caches.keys())if(name.startsWith(CACHE_PREFIX)&&name!==CACHE)await caches.delete(name);await self.clients.claim();})());});
 self.addEventListener('fetch',event=>{

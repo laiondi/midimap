@@ -10,20 +10,22 @@
   <link rel="icon" href="assets/midi-simbolo.webp" type="image/webp">
   <link rel="preload" href="assets/fonts/bricolage.woff2" as="font" type="font/woff2" crossorigin>
   <link rel="stylesheet" href="assets/vendor/leaflet/leaflet.css">
-  <link rel="stylesheet" href="styles.css?v=2.5.1-cabecera-footer-1">
+  <link rel="stylesheet" href="media.css?v=2.6.0">
+  <link rel="stylesheet" href="styles.css?v=2.6.0-cv-galeria">
   <script defer src="assets/vendor/leaflet/leaflet.js"></script>
   <script defer src="data.js?v=2.5-pwa-1"></script>
   <script defer src="assets/map-data.js"></script>
   <script defer src="assets/vendor/supabase/supabase.js"></script>
   <script defer src="config.js"></script>
-  <script defer src="backend.js?v=2.5-pwa-1"></script>
-  <script defer src="app.js?v=2.5-pwa-1"></script>
+  <script defer src="backend.js?v=2.6.0-cv-galeria"></script>
+  <script defer src="profile-media.js?v=2.6.0"></script>
+  <script defer src="app.js?v=2.6.0-cv-galeria"></script>
   <script defer src="ratings.js?v=2.2"></script>
   <script defer src="sponsors.js?v=2.3-formularios-1"></script>
   <script defer src="manifesto.js?v=2.5-pwa-1"></script>
   <script defer src="notifications.js?v=2.5.1-cabecera-footer-1"></script>
   <script defer src="opportunities.js?v=2.5-pwa-1"></script>
-  <script defer src="account.js?v=2.5.1-cabecera-footer-1"></script>
+  <script defer src="account.js?v=2.6.0-cv-galeria"></script>
 </head>
 <body>
   <svg class="icon-sprite" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
@@ -496,8 +498,27 @@
             <button class="text-button" type="button" id="remove-photo" data-account="remove-photo" hidden>Quitar foto del borrador</button>
           </section>
 
+          <section class="editor-section" aria-labelledby="gallery-title">
+            <h3 id="gallery-title">Galería de trabajos · opcional</h3>
+            <p id="gallery-help" class="field-help">Hasta 4 imágenes JPG, PNG o WebP de 12 MB cada una. Las optimizamos al subirlas. Se muestran dentro de la ficha, sin ampliaciones.</p>
+            <div id="owner-gallery-slots" class="gallery-editor"></div>
+            <label for="draft-gallery">Agregar imágenes a la galería</label>
+            <input id="draft-gallery" type="file" accept="image/jpeg,image/png,image/webp" multiple aria-describedby="gallery-help gallery-status">
+            <p id="gallery-status" class="field-help" role="status"></p>
+          </section>
+          <section id="cv-section" class="editor-section" aria-labelledby="cv-title">
+            <h3 id="cv-title">Currículum · opcional</h3>
+            <p id="cv-help" class="field-help">Solo para profesionales independientes. PDF sin contraseña, hasta 5 MB y 30 páginas. El CV será público cuando MiDi apruebe tu ficha.</p>
+            <div id="owner-cv-slot"></div>
+            <label for="draft-cv">Subir o reemplazar CV</label>
+            <input id="draft-cv" type="file" accept="application/pdf,.pdf" aria-describedby="cv-help cv-status">
+            <p id="cv-status" class="field-help" role="status"></p>
+            <button id="remove-cv" class="text-button" type="button" hidden>Quitar CV del borrador</button>
+          </section>
+          <p class="field-help">Los cambios en fotos, CV y galería también se revisan antes de publicarse.</p>
+
           <label class="consent-check"><input id="draft-consent" name="acepta_publicar" type="checkbox" required>
-            <span>Quiero que los datos y la foto de esta ficha se vean en el mapa una vez aprobados. <span class="field-meta required">Obligatorio para enviar a revisión</span></span>
+            <span>Quiero que los datos, las imágenes y el CV que agregue a esta ficha se vean en el mapa una vez aprobados. <span class="field-meta required">Obligatorio para enviar a revisión</span></span>
           </label>
         </fieldset>
         <p id="editor-message" class="inline-feedback" role="status" hidden></p>

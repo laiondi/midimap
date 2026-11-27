@@ -380,6 +380,7 @@ function openProfile(profile) {
       ${profile.address ? `<p class="card-place">${escapeHtml(profile.address)}</p>` : ""}
       <p class="profile-copy"><strong>${escapeHtml(profile.services)}</strong></p>
       <p class="profile-description">${description}</p>
+      <div id="profile-media" class="profile-media" aria-live="polite"></div>
       ${productionMarkup(profile)}
       ${tags}
       <div class="profile-actions">
@@ -395,7 +396,25 @@ function openProfile(profile) {
     </div>`;
   if (!profileDialog.open) profileDialog.showModal();
   profileDialog.scrollTop = 0;
+  void paintPublicMedia(profile);
   applyHighlight();
+}
+
+let profileMediaRequest = 0;
+async function paintPublicMedia(profile) {
+  const request = ++profileMediaRequest;
+  const slot = byId("profile-media");
+  if (!slot || typeof backend === "undefined" || !backend || !(profile.galleryPaths?.length || profile.cvPath)) return;
+  slot.textContent = "Cargando archivos de la ficha…";
+  try {
+    const media = await backend.profileMedia(profile);
+    if (request !== profileMediaRequest || activeProfile !== profile || !profileDialog.open || !slot.isConnected) return;
+    slot.innerHTML = MidiProfileMedia.galleryMarkup(media.galleryUrls, profile.name, backend.mode === "demo") +
+      MidiProfileMedia.cvMarkup(media.cvUrl, profile.profileType === "profesional", backend.mode === "demo");
+    if (media.incomplete) {
+      const text = document.createElement("p"); text.className = "profile-credit"; text.textContent = "Algunos archivos no se pudieron cargar."; slot.append(text);
+    }
+  } catch { if (request === profileMediaRequest && activeProfile === profile && slot.isConnected) slot.textContent = "No pudimos cargar los archivos. Cerrá y volvé a abrir la ficha para reintentar."; }
 }
 
 async function copyProfile() {

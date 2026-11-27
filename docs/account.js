@@ -24,6 +24,9 @@ let accessIntent = "account";
 let accessCodeEmail = "";
 let ownerDraft = null;
 let ownerPhoto = "";
+let ownerGallery = [];
+let ownerCv = "";
+let ownerMediaRequest = 0;
 let ownerPublic = false;
 let reviewQueue = [];
 let reviewSelection = null;
@@ -131,6 +134,11 @@ async function refreshSession() {
   if (sessionUser?.id && sessionUser.id !== account?.id) {
     ownerDraft = null;
     ownerPhoto = "";
+    ownerGallery = [];
+    ownerCv = "";
+    ownerMediaRequest++;
+    byId("owner-gallery-slots").replaceChildren();
+    byId("owner-cv-slot").replaceChildren();
     ownerPublic = false;
     reviewSelection = null;
     reviewQueue = [];
@@ -255,6 +263,8 @@ function ownerModel() {
   model.longitud = model.longitud ? Number(model.longitud) : null;
   model.acepta_publicar = byId("draft-consent").checked;
   model.foto_ruta = ownerPhoto || null;
+  model.galeria_rutas = [...ownerGallery];
+  model.cv_ruta = model.tipo_perfil === "profesional" ? ownerCv || null : null;
   return model;
 }
 
@@ -271,6 +281,7 @@ function editorStatus() {
   byId("draft-pause").hidden = !ownerPublic;
   byId("draft-delete").hidden = !ownerDraft?.id;
   byId("remove-photo").hidden = !ownerPhoto;
+  updateMediaControls();
   const status = byId("editor-status");
   status.replaceChildren();
   const current = document.createElement("span");
@@ -302,6 +313,7 @@ function fillOwnerForm() {
   byId("draft-consent").checked = Boolean(ownerDraft?.acepta_publicar);
   select(".location-details", editorForm).open = Boolean(ownerDraft?.direccion || ownerDraft?.latitud);
   updateProductionFields();
+  updateMediaControls();
 }
 
 async function paintOwnerPhoto() {
@@ -335,11 +347,126 @@ async function showEditor() {
     if (sessionUser?.id !== ownerId) return;
     ownerDraft = draft;
     ownerPhoto = draft?.foto_ruta || "";
+    ownerGallery = [...(draft?.galeria_rutas || [])];
+    ownerCv = draft?.cv_ruta || "";
     ownerPublic = visible;
     fillOwnerForm();
-    await paintOwnerPhoto();
+    await Promise.all([paintOwnerPhoto(), paintOwnerMedia()]);
   }, "No se pudo cargar tu ficha. Volvé a abrirla.");
 }
+
+function updateMediaControls() {
+  const reviewing = ownerDraft?.estado === "en_revision";
+  const locked = !ownerDraft?.id || reviewing || busyPanels.has(editorDialog);
+  const professional = byId("draft-type").value === "profesional";
+  byId("draft-gallery").disabled = locked || ownerGallery.length >= 4;
+  byId("gallery-status").textContent = !ownerDraft?.id ? "Guardá un borrador para habilitar la galería." : ownerGallery.length + " de 4 imágenes.";
+  byId("cv-section").hidden = !professional;
+  byId("draft-cv").disabled = locked || !professional || ownerDraft?.tipo_perfil !== "profesional";
+  byId("remove-cv").hidden = !ownerCv;
+  byId("cv-status").textContent = !ownerDraft?.id || ownerDraft.tipo_perfil !== "profesional" ? "Guardá el borrador como profesional independiente para habilitar el CV." : ownerCv ? "CV cargado. Guardá el borrador para conservar los cambios." : "Todavía no agregaste un CV.";
+}
+
+async function paintOwnerMedia() {
+  const request = ++ownerMediaRequest;
+  const user = sessionUser?.id;
+  const paths = [...ownerGallery];
+  const cv = ownerCv;
+  const slot = byId("owner-gallery-slots");
+  slot.replaceChildren();
+  byId("owner-cv-slot").replaceChildren();
+  updateMediaControls();
+  const [images, document] = await Promise.all([
+    Promise.all(paths.map(path => backend.photoUrl(path).catch(() => ""))),
+    cv && byId("draft-type").value === "profesional" ? backend.cvUrl(cv).catch(() => "") : "",
+  ]);
+  if (request !== ownerMediaRequest || sessionUser?.id !== user) return;
+  paths.forEach((path, index) => {
+    const figure = documentCreate("figure");
+    const src = MidiProfileMedia.imageUrl(images[index], backend.mode === "demo");
+    if (src) {
+      const image = new Image(); image.src = src; image.alt = "Imagen " + (index + 1) + " de tu galería";
+      figure.append(image);
+    } else {
+      const text = documentCreate("p"); text.textContent = "No se pudo cargar la imagen " + (index + 1); figure.append(text);
+    }
+    const controls = documentCreate("figcaption");
+    const label = documentCreate("label"); label.className = "gallery-replace"; label.textContent = "Reemplazar imagen " + (index + 1);
+    const input = documentCreate("input"); input.type = "file"; input.accept = "image/jpeg,image/png,image/webp"; input.dataset.galleryReplace = index;
+    label.append(input);
+    const remove = documentCreate("button"); remove.type = "button"; remove.className = "text-button danger-link";
+    remove.dataset.galleryRemove = index; remove.textContent = "Quitar imagen " + (index + 1);
+    controls.append(label, remove); figure.append(controls); slot.append(figure);
+  });
+  byId("owner-cv-slot").innerHTML = MidiProfileMedia.cvMarkup(document, true, backend.mode === "demo");
+  updateMediaControls();
+}
+const documentCreate = tag => document.createElement(tag);
+
+async function paintReviewMedia(entry) {
+  const user = sessionUser?.id;
+  const slot = byId("review-media");
+  try {
+    const media = await backend.profileMedia(entry);
+    if (reviewSelection !== entry || sessionUser?.id !== user || !slot?.isConnected) return;
+    slot.innerHTML = MidiProfileMedia.galleryMarkup(media.galleryUrls, entry.nombre, backend.mode === "demo") +
+      MidiProfileMedia.cvMarkup(media.cvUrl, entry.tipo_perfil === "profesional", backend.mode === "demo");
+    if (media.incomplete) {
+      const text = documentCreate("p"); text.className = "field-help"; text.textContent = "No se pudieron cargar todos los archivos. Volvé a abrir la solicitud antes de resolverla."; slot.append(text);
+    }
+  } catch { if (reviewSelection === entry && sessionUser?.id === user && slot?.isConnected) slot.textContent = "No se pudieron cargar los archivos. Volvé a abrir la solicitud."; }
+}
+
+async function uploadGallery(files, replacement = null) {
+  if (!files.length || !ownerDraft || busyPanels.has(editorDialog)) return;
+  const ownerId = sessionUser?.id, draftId = ownerDraft.id;
+  if (replacement === null && files.length + ownerGallery.length > 4) { feedback("editor-message", "La galería admite hasta 4 imágenes. Quitá alguna o elegí menos archivos.", true); return; }
+  await runAction(editorDialog, "editor-message", async () => {
+    try {
+      for (const file of files) {
+        const image = await convertirFoto(file);
+        if (sessionUser?.id !== ownerId || ownerDraft?.id !== draftId) return;
+        const path = await backend.upload(image);
+        if (sessionUser?.id !== ownerId || ownerDraft?.id !== draftId) return;
+        if (replacement === null) ownerGallery.push(path); else ownerGallery[replacement] = path;
+      }
+      feedback("editor-message", "Guardá el borrador para conservar las imágenes de la galería.");
+    } finally { if (sessionUser?.id === ownerId && ownerDraft?.id === draftId) await paintOwnerMedia(); }
+  }, "No se pudo subir la imagen de la galería.");
+}
+
+byId("draft-gallery").addEventListener("change", event => {
+  const files = Array.from(event.target.files || []); event.target.value = ""; void uploadGallery(files);
+});
+byId("owner-gallery-slots").addEventListener("change", event => {
+  const index = Number(event.target.dataset.galleryReplace), file = event.target.files?.[0]; event.target.value = "";
+  if (file && Number.isInteger(index) && index >= 0 && index < ownerGallery.length) void uploadGallery([file], index);
+});
+byId("owner-gallery-slots").addEventListener("click", event => {
+  const button = event.target.closest("[data-gallery-remove]");
+  if (!button || busyPanels.has(editorDialog) || ownerDraft?.estado === "en_revision") return;
+  const index = Number(button.dataset.galleryRemove);
+  if (!Number.isInteger(index) || index < 0 || index >= ownerGallery.length) return;
+  ownerGallery.splice(index, 1); void paintOwnerMedia(); feedback("editor-message", "Guardá el borrador para conservar el cambio.");
+});
+byId("draft-cv").addEventListener("change", event => {
+  const file = event.target.files?.[0]; event.target.value = "";
+  if (!file || !ownerDraft || busyPanels.has(editorDialog)) return;
+  const ownerId = sessionUser?.id, draftId = ownerDraft.id;
+  void runAction(editorDialog, "editor-message", async () => {
+    if (file.size > 5_000_000 || (file.type && file.type !== "application/pdf")) throw Error("Elegí un PDF de hasta 5 MB.");
+    const prefix = new TextDecoder().decode(await file.slice(0, 8).arrayBuffer());
+    if (!/^%PDF-(1\.[0-7]|2\.0)/.test(prefix)) throw Error("El archivo no es un PDF válido.");
+    if (sessionUser?.id !== ownerId || ownerDraft?.id !== draftId) return;
+    const path = await backend.uploadCv(new Blob([file], {type: "application/pdf"}));
+    if (sessionUser?.id !== ownerId || ownerDraft?.id !== draftId) return;
+    ownerCv = path; await paintOwnerMedia(); feedback("editor-message", "CV cargado. Guardá el borrador para conservarlo.");
+  }, "No se pudo subir el CV.");
+});
+byId("remove-cv").addEventListener("click", () => {
+  if (busyPanels.has(editorDialog) || ownerDraft?.estado === "en_revision") return;
+  ownerCv = ""; void paintOwnerMedia(); feedback("editor-message", "Guardá el borrador para quitar el CV de la próxima versión.");
+});
 
 async function convertirFoto(file, preserveTransparency = false) {
   if (file.size > 12_000_000 || !["image/jpeg", "image/png", "image/webp"].includes(file.type)) {
@@ -505,6 +632,7 @@ async function chooseReview(id) {
     '<p class="detail-row">' + escapeHtml(entry.descripcion) + "</p>" +
     productionMarkup({ processes: entry.procesos, materials: entry.materiales, scale: entry.escala_produccion }) +
     '<p class="detail-row">' + escapeHtml(contact) + "</p>" +
+    '<div id="review-media"></div>' +
     (pending ? '<label for="review-comment">Indicación para el titular si pedís cambios</label>' +
       '<textarea id="review-comment" maxlength="500" rows="2"></textarea>' : "") +
     '<div class="dialog-actions">' +
@@ -517,6 +645,7 @@ async function chooseReview(id) {
   detail.scrollIntoView({ block: "nearest" });
   feedback("review-message");
   void markRequestRead(entry);
+  void paintReviewMedia(entry);
   try {
     const [visible, src] = await Promise.all([
       backend.publicVisible(entry.id),
@@ -615,6 +744,7 @@ function continueAccess() {
 }
 
 byId("draft-category").addEventListener("change", updateProductionFields);
+byId("draft-type").addEventListener("change", () => { updateMediaControls(); void paintOwnerMedia(); });
 
 editorForm.addEventListener("submit", (event) => {
   event.preventDefault();
@@ -627,8 +757,15 @@ editorForm.addEventListener("submit", (event) => {
     return;
   }
   void runAction(editorDialog, "editor-message", async () => {
-    ownerDraft = await backend.save(ownerDraft?.version ?? 0, model);
+    const ownerId = sessionUser?.id;
+    const saved = await backend.save(ownerDraft?.version ?? 0, model);
+    if (sessionUser?.id !== ownerId) return;
+    ownerDraft = saved;
+    ownerGallery = [...(saved.galeria_rutas || [])];
+    ownerCv = saved.cv_ruta || "";
     if (sending) ownerDraft = await backend.submit(ownerDraft);
+    if (sessionUser?.id !== ownerId) return;
+    await paintOwnerMedia();
     void refreshCommunity();
     feedback("editor-message", sending ? "La ficha se envió a revisión." : "Borrador guardado.");
   }, "No se pudo guardar tu ficha.");

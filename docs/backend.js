@@ -2,13 +2,13 @@
 
 const fichaFields = [
   "id", "titular", "version", "estado", "tipo_perfil", "nombre", "categoria", "localidad", "servicios", "descripcion",
-  "web", "correo_publico", "whatsapp", "direccion", "latitud", "longitud", "foto_ruta",
+  "web", "correo_publico", "whatsapp", "direccion", "latitud", "longitud", "foto_ruta", "cv_ruta", "galeria_rutas",
   "telefono", "red_social", "procesos", "materiales", "escala_produccion",
   "acepta_publicar", "nota_revision", "actualizada",
 ].join(",");
 const publicFields = [
   "id", "tipo_perfil", "nombre", "categoria", "localidad", "servicios", "descripcion", "web",
-  "correo_publico", "whatsapp", "direccion", "latitud", "longitud", "foto_ruta",
+  "correo_publico", "whatsapp", "direccion", "latitud", "longitud", "foto_ruta", "cv_ruta", "galeria_rutas",
   "telefono", "red_social", "procesos", "materiales", "escala_produccion",
 ].join(",");
 const sponsorFields = "id,version,titulo,texto,enlace,imagen_ruta,orden,activo";
@@ -62,6 +62,8 @@ function enlazarFicha(row, photoUrl = "", rating = null) {
     ratingCount: rating?.cantidad || 0,
     tags: [],
     photoUrl,
+    cvPath: row.tipo_perfil === "profesional" ? row.cv_ruta || "" : "",
+    galleryPaths: Array.isArray(row.galeria_rutas) ? row.galeria_rutas.slice(0, 4) : [],
   };
 }
 
@@ -71,6 +73,7 @@ function backendSupabase() {
   });
   const photos = client.storage.from("fotos-fichas");
   const sponsorPhotos = client.storage.from("fotos-patrocinios");
+  const cvs = client.storage.from("cv-fichas");
   const rpc = async (name, args) => dato(await client.rpc(name, args));
   const mutate = async (name, args) => fichaIndividual(await rpc(name, args));
   const getUser = async () => dato(await client.auth.getSession())?.session?.user ?? null;
@@ -135,6 +138,29 @@ function backendSupabase() {
     return data.path;
   }
 
+  async function cvUrl(path) {
+    return path ? dato(await cvs.createSignedUrl(path, 1200, { download: "curriculum.pdf" })).signedUrl : "";
+  }
+  async function profileMedia(row) {
+    const paths = row.galleryPaths || row.galeria_rutas || [];
+    const cv = (row.profileType || row.tipo_perfil) === "profesional" ? row.cvPath || row.cv_ruta : "";
+    const [images, document] = await Promise.all([
+      signedImages(photos, paths.slice(0, 4)),
+      cvUrl(cv).catch(() => ""),
+    ]);
+    const galleryUrls = paths.map(path => images.get(path)).filter(Boolean);
+    return {galleryUrls, cvUrl: document, incomplete: galleryUrls.length !== paths.length || Boolean(cv && !document)};
+  }
+  async function uploadCv(blob) {
+    const {data, error} = await client.functions.invoke("subir-cv", {body: blob, headers: {"Content-Type": "application/pdf"}});
+    if (error) {
+      const payload = await error.context?.json?.().catch(() => null);
+      throw Error(payload?.error || "No se pudo subir el CV. Revisá el despliegue de subir-cv.");
+    }
+    if (!data?.path) throw Error("No se pudo guardar el CV.");
+    return data.path;
+  }
+
   return {
     mode: "conectado",
     watch: (callback) => client.auth.onAuthStateChange(() => setTimeout(callback, 0)),
@@ -184,6 +210,9 @@ function backendSupabase() {
     }),
     photoUrl: async (path) => path ? dato(await photos.createSignedUrl(path, 1200)).signedUrl : "",
     upload,
+    uploadCv,
+    cvUrl,
+    profileMedia,
     publicSponsors: () => listSponsors(true),
     sponsors: () => listSponsors(false),
     saveSponsor: (id, version, model) => mutate("guardar_patrocinio", { p_id: id, p_version: version, p_datos: model }),
@@ -255,7 +284,8 @@ function backendDemo() {
     };
   }
   function write(state) {
-    localStorage.setItem(stateKey, JSON.stringify(state));
+    try { localStorage.setItem(stateKey, JSON.stringify(state)); }
+    catch (error) { if (error?.name === "QuotaExceededError") throw Error("El almacenamiento de la demo está lleno. Usá archivos más livianos para probar o conectá Supabase."); throw error; }
   }
   let session = localStorage.getItem(sessionKey);
   function current() {
@@ -441,8 +471,13 @@ function backendDemo() {
       const before = storage.drafts[titular];
       if ((before?.version ?? 0) !== version) throw Error("La ficha cambió. Volvé a abrirla.");
       if (before?.estado === "en_revision") throw Error("Retirá la ficha de revisión para editarla.");
+      const profileType = model.tipo_perfil || before?.tipo_perfil || "profesional";
+      if (model.cv_ruta && profileType !== "profesional") throw Error("El CV está disponible solo para profesionales independientes.");
+      const gallery = model.galeria_rutas ?? before?.galeria_rutas ?? [];
+      if (!Array.isArray(gallery) || gallery.length > 4 || new Set(gallery).size !== gallery.length) throw Error("La galería admite hasta 4 imágenes diferentes.");
       const row = {
-        ...model, id: before?.id || crypto.randomUUID(),
+        ...model, tipo_perfil: profileType, cv_ruta: profileType === "profesional" ? (Object.hasOwn(model, "cv_ruta") ? model.cv_ruta : before?.cv_ruta ?? null) : null,
+        galeria_rutas: [...gallery], id: before?.id || crypto.randomUUID(),
         titular, version: version + 1, estado: before?.estado === "correcciones" ? "correcciones" : "borrador",
         nota_revision: before?.nota_revision || null, actualizada: new Date().toISOString(),
       };
@@ -480,7 +515,7 @@ function backendDemo() {
         if (row.estado !== "en_revision") throw Error("La ficha ya cambió. Actualizá la lista.");
         row.estado = approved ? "publicada" : "correcciones";
         row.nota_revision = approved ? null : note;
-        if (approved) storage.published[row.id] = { ...row };
+        if (approved) storage.published[row.id] = structuredClone(row);
       }, draft.titular);
     },
     rate: async (id, score, hired) => {
@@ -525,6 +560,17 @@ function backendDemo() {
       moderation();
       return path || "";
     },
+    profileMedia: async (row) => ({galleryUrls: row.galleryPaths || row.galeria_rutas || [], cvUrl: (row.profileType || row.tipo_perfil) === "profesional" ? row.cvPath || row.cv_ruta || "" : "", incomplete: false}),
+    cvUrl: async (path) => path || "",
+    uploadCv: async (blob) => new Promise((resolve, reject) => {
+      const owner = requireOwner();
+      const draft = read().drafts[owner.id];
+      if (!draft || draft.tipo_perfil !== "profesional" || draft.estado === "en_revision") return reject(Error("Guardá un borrador de profesional independiente antes de subir tu CV."));
+      const reader = new FileReader();
+      reader.onload = () => resolve(reader.result);
+      reader.onerror = () => reject(Error("No se pudo leer el CV."));
+      reader.readAsDataURL(blob);
+    }),
     photoUrl: async (path) => path || "",
     upload: async (blob, target) => new Promise((resolve, reject) => {
       if (target === "patrocinio") moderation();
